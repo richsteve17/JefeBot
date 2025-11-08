@@ -121,7 +121,7 @@ export class ElMaestroDelJuego extends BaseModule {
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[JefeBot] 🔥 ¡REGALO RÁPIDO! (Gift Burst!) 🔥\n[JefeBot] 60 seconds! Most 'Rose' gifts wins!\n[JefeBot] ¡VAMOS!`
+      content: `[Rich$teve] 🔥 ¡REGALO RÁPIDO! (Gift Burst!) 🔥\n[Rich$teve] 60 seconds! Most 'Rose' gifts wins!\n[Rich$teve] ¡VAMOS!`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
@@ -145,8 +145,8 @@ export class ElMaestroDelJuego extends BaseModule {
     const endMsg: BotMessage = {
       type: 'announcement',
       content: winner
-        ? `[JefeBot] 🏆 ¡GANADOR! 🏆\n[JefeBot] ${winner[0]} wins with ${winner[1]} roses!\n[JefeBot] ¡Felicidades!`
-        : `[JefeBot] ⏱️ Time's up!\n[JefeBot] No participants this round. Next time!`
+        ? `[Rich$teve] 🏆 ¡GANADOR! 🏆\n[Rich$teve] ${winner[0]} wins with ${winner[1]} roses!\n[Rich$teve] ¡Felicidades!`
+        : `[Rich$teve] ⏱️ Time's up!\n[Rich$teve] No participants this round. Next time!`
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);
@@ -173,7 +173,7 @@ export class ElMaestroDelJuego extends BaseModule {
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[JefeBot] 🤝 ¡META FAMILIAR! (Family Goal!) 🤝\n[JefeBot] Let's hit ${goal} 'Palomitas' (Popcorn) gifts TOGETHER in 3 minutes!\n[JefeBot] ¡Todos juntos! (All together!)`
+      content: `[Rich$teve] 🤝 ¡META FAMILIAR! (Family Goal!) 🤝\n[Rich$teve] Let's hit ${goal} 'Palomitas' (Popcorn) gifts TOGETHER in 3 minutes!\n[Rich$teve] ¡Todos juntos! (All together!)`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
@@ -204,7 +204,7 @@ export class ElMaestroDelJuego extends BaseModule {
 
     const progressMsg: BotMessage = {
       type: 'chat',
-      content: `[JefeBot] 📊 Progress: ${totalGifts}/${goal}\n[JefeBot] ${totalGifts >= goal ? '¡LO LOGRAMOS! (We did it!)' : '¡Sigue así! (Keep going!)'}`
+      content: `[Rich$teve] 📊 Progress: ${totalGifts}/${goal}\n[Rich$teve] ${totalGifts >= goal ? '¡LO LOGRAMOS! (We did it!)' : '¡Sigue así! (Keep going!)'}`
     };
 
     await this.sendMessage(progressMsg, this.sendMessageFn);
@@ -221,8 +221,8 @@ export class ElMaestroDelJuego extends BaseModule {
     const endMsg: BotMessage = {
       type: 'announcement',
       content: success
-        ? `[JefeBot] 🎉 ¡META ALCANZADA! 🎉\n[JefeBot] ${totalGifts}/${goal} gifts!\n[JefeBot] ¡La familia es fuerte! (The family is strong!)`
-        : `[JefeBot] ⏱️ Time's up!\n[JefeBot] ${totalGifts}/${goal} gifts. Almost there!\n[JefeBot] Next time we'll get it!`
+        ? `[Rich$teve] 🎉 ¡META ALCANZADA! 🎉\n[Rich$teve] ${totalGifts}/${goal} gifts!\n[Rich$teve] ¡La familia es fuerte! (The family is strong!)`
+        : `[Rich$teve] ⏱️ Time's up!\n[Rich$teve] ${totalGifts}/${goal} gifts. Almost there!\n[Rich$teve] Next time we'll get it!`
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);
@@ -247,7 +247,7 @@ export class ElMaestroDelJuego extends BaseModule {
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[JefeBot] 👑 ¡REY DE LA COLINA! (King of the Hill!) 👑\n[JefeBot] 5-minute timer. The person who sends the LAST gift before the timer hits 0 wins the crown!\n[JefeBot] ¡Pelea por la corona! (Fight for the crown!)`
+      content: `[Rich$teve] 👑 ¡REY DE LA COLINA! (King of the Hill!) 👑\n[Rich$teve] 5-minute timer. The person who sends the LAST gift before the timer hits 0 wins the crown!\n[Rich$teve] ¡Pelea por la corona! (Fight for the crown!)`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
@@ -270,8 +270,8 @@ export class ElMaestroDelJuego extends BaseModule {
     const endMsg: BotMessage = {
       type: 'announcement',
       content: winner
-        ? `[JefeBot] 👑 ¡EL REY/LA REINA! 👑\n[JefeBot] ${winner[0]} holds the crown!\n[JefeBot] ¡Felicidades!`
-        : `[JefeBot] ⏱️ Time's up!\n[JefeBot] No king this round!`
+        ? `[Rich$teve] 👑 ¡EL REY/LA REINA! 👑\n[Rich$teve] ${winner[0]} holds the crown!\n[Rich$teve] ¡Felicidades!`
+        : `[Rich$teve] ⏱️ Time's up!\n[Rich$teve] No king this round!`
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);

@@ -1,7 +1,7 @@
 {
-  "name": "jefe-bot-dashboard",
+  "name": "rich-steve-bot",
   "version": "1.0.0",
-  "description": "The Silent Jefe's Interactive MC - SUGO Bot Dashboard",
+  "description": "Rich $teve Bot - The Rich Legacy Interactive MC for SUGO",
   "type": "module",
   "scripts": {
     "dev": "vite",

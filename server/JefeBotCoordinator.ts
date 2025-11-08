@@ -7,7 +7,7 @@ import { ElMaestroDelJuego } from './modules/ElMaestroDelJuego.js';
 import { ElHypeMan } from './modules/ElHypeMan.js';
 import { BotConfig, ModuleConfig, BotState, PKBattle, Gift } from './types.js';
 
-export class JefeBotCoordinator {
+export class Rich$teve BotCoordinator {
   private config: BotConfig;
   private moduleConfig: ModuleConfig;
   private state: BotState;
@@ -46,11 +46,11 @@ export class JefeBotCoordinator {
 
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('[JefeBot] Already running');
+      console.log('[Rich$teve Bot] Already running');
       return;
     }
 
-    console.log('[JefeBot] Starting...');
+    console.log('[Rich$teve Bot] Starting...');
 
     // Initialize all modules
     await this.elMusico.initialize();
@@ -71,13 +71,13 @@ export class JefeBotCoordinator {
     }
 
     this.isRunning = true;
-    console.log('[JefeBot] All systems GO! 🚀');
+    console.log('[Rich$teve Bot] All systems GO! 🚀');
   }
 
   async stop(): Promise<void> {
     if (!this.isRunning) return;
 
-    console.log('[JefeBot] Stopping...');
+    console.log('[Rich$teve Bot] Stopping...');
 
     await this.elMusico.cleanup();
     await this.elAnunciador.cleanup();
@@ -85,7 +85,7 @@ export class JefeBotCoordinator {
     await this.elHypeMan.cleanup();
 
     this.isRunning = false;
-    console.log('[JefeBot] Stopped');
+    console.log('[Rich$teve Bot] Stopped');
   }
 
   updateModuleConfig(newConfig: ModuleConfig): void {
@@ -110,7 +110,7 @@ export class JefeBotCoordinator {
     this.elHypeMan.setEnabled(config.elHypeMan.enabled);
     this.elHypeMan.setMinimumDiamonds(config.elHypeMan.minimumDiamonds);
 
-    console.log('[JefeBot] Module configuration updated');
+    console.log('[Rich$teve Bot] Module configuration updated');
   }
 
   updateSpotifyToken(token: string): void {
@@ -120,12 +120,12 @@ export class JefeBotCoordinator {
   // Event handlers for SUGO room events
 
   async onPKStart(pk: PKBattle): Promise<void> {
-    console.log('[JefeBot] PK detected:', pk);
+    console.log('[Rich$teve Bot] PK detected:', pk);
     await this.elAnunciador.onPKStart(pk);
   }
 
   async onPKEnd(pk: PKBattle, winner: string, mvp?: string): Promise<void> {
-    console.log('[JefeBot] PK ended:', winner);
+    console.log('[Rich$teve Bot] PK ended:', winner);
     await this.elAnunciador.onPKEnd(pk, winner, mvp);
   }
 
@@ -134,7 +134,7 @@ export class JefeBotCoordinator {
   }
 
   async onGiftReceived(gift: Gift): Promise<void> {
-    console.log('[JefeBot] Gift received:', gift);
+    console.log('[Rich$teve Bot] Gift received:', gift);
 
     // Notify both modules that care about gifts
     await this.elHypeMan.onGiftReceived(gift);

@@ -57,7 +57,7 @@ export class ElHypeMan extends BaseModule {
 
     const shoutMsg: BotMessage = {
       type: 'announcement',
-      content: `[JefeBot] ${intensity}\n[JefeBot] ${title}\n[JefeBot] ¡Todos saluden a ${gift.username} por el '${gift.giftName}'!\n[JefeBot] (Everyone hail ${gift.username} for the '${gift.giftName}'!)`
+      content: `[Rich$teve] ${intensity}\n[Rich$teve] ${title}\n[Rich$teve] ¡Todos saluden a ${gift.username} por el '${gift.giftName}'!\n[Rich$teve] (Everyone hail ${gift.username} for the '${gift.giftName}'!)`
     };
 
     await this.sendMessage(shoutMsg, this.sendMessageFn);

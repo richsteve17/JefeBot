@@ -103,7 +103,7 @@ export class ElMusico extends BaseModule {
     // Message 1: Now Playing
     const nowPlayingMsg: BotMessage = {
       type: 'chat',
-      content: `[JefeBot] 🎧 Now Playing: '${track.name}' - ${track.artist}`
+      content: `[Rich$teve] 🎧 Now Playing: '${track.name}' - ${track.artist}`
     };
 
     await this.sendMessage(nowPlayingMsg, this.sendMessageFn);
@@ -112,7 +112,7 @@ export class ElMusico extends BaseModule {
     if (this.vibeCheckEnabled) {
       const vibeCheckMsg: BotMessage = {
         type: 'chat',
-        content: `[JefeBot] 🔥 VIBE CHECK! 🔥 How we feeling?\n[JefeBot] Send a 'Corazón' (❤️) if you LOVE this song!\n[JefeBot] Send a 'Broken Heart' (💔) if it hurts so good!`,
+        content: `[Rich$teve] 🔥 VIBE CHECK! 🔥 How we feeling?\n[Rich$teve] Send a 'Corazón' (❤️) if you LOVE this song!\n[Rich$teve] Send a 'Broken Heart' (💔) if it hurts so good!`,
         delay: 5000
       };
 
@@ -128,7 +128,7 @@ export class ElMusico extends BaseModule {
 
     const vibeCheckMsg: BotMessage = {
       type: 'chat',
-      content: `[JefeBot] 🔥 VIBE CHECK! 🔥 How we feeling?\n[JefeBot] Send a 'Corazón' (❤️) if you LOVE this song!\n[JefeBot] Send a 'Broken Heart' (💔) if it hurts so good!`
+      content: `[Rich$teve] 🔥 VIBE CHECK! 🔥 How we feeling?\n[Rich$teve] Send a 'Corazón' (❤️) if you LOVE this song!\n[Rich$teve] Send a 'Broken Heart' (💔) if it hurts so good!`
     };
 
     await this.sendMessage(vibeCheckMsg, this.sendMessageFn);

@@ -181,8 +181,8 @@ function App() {
   return (
     <div className="dashboard">
       <header className="dashboard-header">
-        <h1>🎵 Jefe Bot Dashboard</h1>
-        <p className="tagline">The Silent Jefe's Interactive MC</p>
+        <h1>💰 RICH $TEVE BOT 💰</h1>
+        <p className="tagline">The Rich Legacy - Your Interactive MC</p>
         <div className="connection-status">
           <span className={`status-indicator ${connectionStatus}`}></span>
           {connectionStatus === 'connected' ? 'Connected' : 'Disconnected'}
@@ -430,7 +430,7 @@ function App() {
       </div>
 
       <footer className="dashboard-footer">
-        <p>Jefe Bot v1.0 - Your 24/7 Interactive MC</p>
+        <p>Rich $teve Bot v1.0 - Building the Legacy 24/7</p>
       </footer>
     </div>
   );

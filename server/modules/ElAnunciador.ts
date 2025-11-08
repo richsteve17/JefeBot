@@ -34,7 +34,7 @@ export class ElAnunciador extends BaseModule {
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[JefeBot] 🔴🔵 ¡ES TIEMPO DE BATALLA! 🔴🔵\n[JefeBot] ${pk.team1} vs ${pk.team2}\n[JefeBot] ¡VAMOS! Let's GO!`
+      content: `[Rich$teve] 🔴🔵 ¡ES TIEMPO DE BATALLA! 🔴🔵\n[Rich$teve] ${pk.team1} vs ${pk.team2}\n[Rich$teve] ¡VAMOS! Let's GO!`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
@@ -76,7 +76,7 @@ export class ElAnunciador extends BaseModule {
 
     const updateMsg: BotMessage = {
       type: 'chat',
-      content: `[JefeBot] ⚡ PK UPDATE ⚡\n[JefeBot] ${pk.team1}: ${pk.team1Score} | ${pk.team2}: ${pk.team2Score}\n[JefeBot] ${leader}\n[JefeBot] ${timeRemaining} minutes remaining!`
+      content: `[Rich$teve] ⚡ PK UPDATE ⚡\n[Rich$teve] ${pk.team1}: ${pk.team1Score} | ${pk.team2}: ${pk.team2Score}\n[Rich$teve] ${leader}\n[Rich$teve] ${timeRemaining} minutes remaining!`
     };
 
     await this.sendMessage(updateMsg, this.sendMessageFn);
@@ -91,7 +91,7 @@ export class ElAnunciador extends BaseModule {
 
     const endMsg: BotMessage = {
       type: 'announcement',
-      content: `[JefeBot] 🏆 ¡BATALLA TERMINADA! 🏆\n[JefeBot] Winner: ${winner}!\n[JefeBot] Final Score: ${pk.team1}: ${pk.team1Score} | ${pk.team2}: ${pk.team2Score}${mvp ? `\n[JefeBot] 👑 MVP: ${mvp}! 👑` : ''}`
+      content: `[Rich$teve] 🏆 ¡BATALLA TERMINADA! 🏆\n[Rich$teve] Winner: ${winner}!\n[Rich$teve] Final Score: ${pk.team1}: ${pk.team1Score} | ${pk.team2}: ${pk.team2Score}${mvp ? `\n[Rich$teve] 👑 MVP: ${mvp}! 👑` : ''}`
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);

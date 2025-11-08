@@ -3,7 +3,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
-import { JefeBotCoordinator } from './JefeBotCoordinator.js';
+import { Rich$teve BotCoordinator } from './Rich$teve BotCoordinator.js';
 import { BotConfig, ModuleConfig, Gift, PKBattle } from './types.js';
 
 const app = express();
@@ -42,7 +42,7 @@ let moduleConfig: ModuleConfig = {
   }
 };
 
-let jefeBotCoordinator: JefeBotCoordinator | null = null;
+let jefeBotCoordinator: Rich$teve BotCoordinator | null = null;
 let connectedClients: Set<WebSocket> = new Set();
 
 // Broadcast to all connected dashboard clients
@@ -127,7 +127,7 @@ app.post('/api/bot/start', async (req, res) => {
     });
   }
 
-  jefeBotCoordinator = new JefeBotCoordinator(botConfig, moduleConfig);
+  jefeBotCoordinator = new Rich$teve BotCoordinator(botConfig, moduleConfig);
   await jefeBotCoordinator.start();
 
   broadcast({ type: 'bot_started', data: { isRunning: true } });

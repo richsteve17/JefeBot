@@ -1,14 +1,16 @@
-# 🎵 Jefe Bot Dashboard
+# 💰 RICH $TEVE BOT
 
-**The Silent Jefe's Interactive MC**
+**The Rich Legacy - Your Interactive MC**
 
-Your complete automated co-host for SUGO live streaming. Turn your music stream into a 24/7 interactive game show while you stay in the "power seat" and just run the show.
+Your complete automated co-host for SUGO live streaming. Turn your music stream into a 24/7 interactive game show while you build the legacy.
 
 ---
 
-## 🌟 What is Jefe Bot?
+## 🌟 What is Rich $teve Bot?
 
-Jefe Bot is your **four-module interactive MC system** that creates constant "dinámica" (dynamics/energy) in your SUGO live stream without you saying a single word. It's not just a tool—it's your hype man, game master, announcer, and DJ assistant all in one.
+Rich $teve Bot is your **four-module interactive MC system** that creates constant "dinámica" (dynamics/energy) in your SUGO live stream. It's not just a tool—it's your hype man, game master, announcer, and DJ assistant all in one.
+
+**Powered by neon orange, black, and white - the Rich Legacy colors.**
 
 ### The Four Modules
 
@@ -18,9 +20,9 @@ Jefe Bot is your **four-module interactive MC system** that creates constant "di
 - **Status**: Always on when music is playing
 - **Example**:
   ```
-  [JefeBot] 🎧 Now Playing: 'Cute Without The E' - Dashboard Confessional
-  [JefeBot] 🔥 VIBE CHECK! 🔥 How we feeling?
-  [JefeBot] Send a 'Corazón' (❤️) if you LOVE this song!
+  [Rich$teve] 🎧 Now Playing: 'Cute Without The E' - Dashboard Confessional
+  [Rich$teve] 🔥 VIBE CHECK! 🔥 How we feeling?
+  [Rich$teve] Send a 'Corazón' (❤️) if you LOVE this song!
   ```
 
 #### 📢 **El Anunciador** (The PK Announcer)
@@ -30,9 +32,9 @@ Jefe Bot is your **four-module interactive MC system** that creates constant "di
 - **Status**: Sleeps until PK starts, then takes over
 - **Example**:
   ```
-  [JefeBot] 🔴🔵 ¡ES TIEMPO DE BATALLA! 🔴🔵
-  [JefeBot] Team Red vs Team Blue
-  [JefeBot] ¡VAMOS! Let's GO!
+  [Rich$teve] 🔴🔵 ¡ES TIEMPO DE BATALLA! 🔴🔵
+  [Rich$teve] Team Red vs Team Blue
+  [Rich$teve] ¡VAMOS! Let's GO!
   ```
 
 #### 🎮 **El Maestro del Juego** (The Game Master)
@@ -45,9 +47,9 @@ Jefe Bot is your **four-module interactive MC system** that creates constant "di
 - **Status**: Runs automatically on timer
 - **Example**:
   ```
-  [JefeBot] 🔥 ¡REGALO RÁPIDO! (Gift Burst!) 🔥
-  [JefeBot] 60 seconds! Most 'Rose' gifts wins!
-  [JefeBot] ¡VAMOS!
+  [Rich$teve] 🔥 ¡REGALO RÁPIDO! (Gift Burst!) 🔥
+  [Rich$teve] 60 seconds! Most 'Rose' gifts wins!
+  [Rich$teve] ¡VAMOS!
   ```
 
 #### 🔥 **El Hype Man** (The Hype Man)
@@ -56,9 +58,9 @@ Jefe Bot is your **four-module interactive MC system** that creates constant "di
 - **Status**: Always watching, 24/7
 - **Example**:
   ```
-  [JefeBot] 💥💥 ¡QUÉ LOCURA! 💥💥
-  [JefeBot] 👑 ROYALTY 👑
-  [JefeBot] ¡Todos saluden a Kelsey por el 'Castle'!
+  [Rich$teve] 💥💥 ¡QUÉ LOCURA! 💥💥
+  [Rich$teve] 👑 ROYALTY 👑
+  [Rich$teve] ¡Todos saluden a Kelsey por el 'Castle'!
   ```
 
 ---
@@ -84,6 +86,95 @@ npm run dev
 ```
 
 The dashboard will open at `http://localhost:3000`
+
+---
+
+## 🔑 Getting Your SUGO Credentials
+
+### What You Need
+
+To run Rich $teve Bot, you need two pieces of information from SUGO:
+
+1. **SUGO Room ID** - Your live stream room identifier
+2. **Bot Account Token** - Authentication token for your bot account
+
+### How to Get Them
+
+#### Option 1: From SUGO App/Website
+
+1. **Get Your Room ID**:
+   - Open your SUGO live stream
+   - Look at the URL: `https://sugo.com/live/[YOUR-ROOM-ID]`
+   - Copy that room ID
+   - Alternative: Check your profile settings under "Live Stream Settings"
+
+2. **Get Your Bot Account Token**:
+   - SUGO typically requires you to register a bot account separately
+   - Go to SUGO Developer Portal (if available)
+   - Create a new bot application
+   - Copy the authentication token provided
+
+#### Option 2: Using Browser Developer Tools
+
+If SUGO doesn't have a public API yet, you can extract credentials from your browser:
+
+1. **Open SUGO in Chrome/Firefox**
+2. **Open Developer Tools** (F12)
+3. **Go to Network tab**
+4. **Start your live stream**
+5. **Look for API calls** containing:
+   - `room_id` or `channel_id`
+   - `token` or `authorization` headers
+
+**Note**: This method is for personal use only. Always follow SUGO's Terms of Service.
+
+#### Option 3: Contact SUGO Support
+
+If you're planning to use this bot professionally:
+- Email SUGO support requesting bot API access
+- Explain your use case (automated chat engagement)
+- They may provide official bot credentials
+
+### Entering Credentials in Dashboard
+
+Once you have your credentials:
+
+1. Start the Rich $teve Bot Dashboard
+2. Go to the **Configuration** section
+3. Enter your **SUGO Room ID**
+4. Enter your **Bot Account Token**
+5. (Optional) Add your **Spotify Access Token**
+6. Click **START BOT**
+
+---
+
+## 🎵 Getting Your Spotify Token
+
+### Quick Setup
+
+1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Log in with your Spotify account
+3. Click "Create an App"
+4. Give it a name (e.g., "Rich $teve Bot")
+5. Copy your **Client ID** and **Client Secret**
+
+### Getting an Access Token
+
+You need a token with the `user-read-currently-playing` scope.
+
+**Quick Method** (for testing):
+
+1. Go to [Spotify Console](https://developer.spotify.com/console/get-users-currently-playing-track/)
+2. Click "Get Token"
+3. Check `user-read-currently-playing`
+4. Copy the token
+5. Paste into dashboard
+
+**Production Method** (OAuth flow):
+
+You'll need to implement OAuth 2.0 flow. The token expires after 1 hour and needs refresh.
+
+For now, the quick method works great for testing!
 
 ---
 
@@ -120,7 +211,7 @@ The dashboard will open at `http://localhost:3000`
   - **Minimum Diamonds**: 100-10,000 (default: 1,000)
 
 ### 3. Start the Bot
-Click the big **▶ START BOT** button and watch the magic happen!
+Click the big **▶ START BOT** button and watch the legacy grow!
 
 ---
 
@@ -140,7 +231,7 @@ Here's a 30-minute scenario with all modules active:
 | 7:25 PM | PK ends → Announces winner + MVP | El Anunciador |
 | 7:26 PM | Song changes → Back to music | El Músico |
 
-**Result**: Non-stop engagement without you saying a word!
+**Result**: Non-stop engagement while you build the legacy!
 
 ---
 
@@ -169,7 +260,7 @@ Use these to see how each module responds before going live!
 
 ### Frontend (React + TypeScript + Vite)
 - `src/App.tsx` - Dashboard UI
-- `src/App.css` - Styles
+- `src/App.css` - Neon orange, black & white styles
 - Real-time WebSocket connection for live updates
 
 ### Module Coordination
@@ -183,9 +274,10 @@ Use these to see how each module responds before going live!
 
 - **Real-time Status**: See what's playing, active games, and PKs
 - **Live Configuration**: Change settings without restarting
-- **Visual Feedback**: Color-coded status indicators
+- **Visual Feedback**: Neon orange glow on active elements
 - **Responsive Design**: Works on laptop, tablet, and desktop
 - **Connection Monitor**: Always know if you're connected
+- **Rich Legacy Branding**: Black background, orange accents, white text
 
 ---
 
@@ -193,7 +285,7 @@ Use these to see how each module responds before going live!
 
 **Note**: This current implementation includes mock SUGO API calls. To connect to the real SUGO API:
 
-1. Update the `sendToSUGO()` method in `server/JefeBotCoordinator.ts`
+1. Update the `sendToSUGO()` method in `server/JefeBotCoordinator.ts:115-130`
 2. Implement SUGO event listeners for:
    - PK start/end events
    - Gift received events
@@ -214,18 +306,15 @@ private async sendToSUGO(message: string): Promise<void> {
 }
 ```
 
----
+### Finding SUGO API Endpoints
 
-## 🎵 Spotify Integration
+If SUGO doesn't have public documentation:
 
-To enable Spotify features:
-
-1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-2. Create an app
-3. Get your access token
-4. Paste it into the dashboard
-
-The bot will automatically detect song changes and announce them!
+1. Use browser DevTools Network tab
+2. Perform actions in SUGO (send message, start PK, send gift)
+3. Look at the XHR/Fetch requests
+4. Note the endpoint URLs and headers
+5. Replicate those calls in the bot
 
 ---
 
@@ -240,6 +329,7 @@ The bot will automatically detect song changes and announce them!
 - ✅ Token must be valid and not expired
 - ✅ Spotify must be actively playing
 - ✅ Token needs `user-read-currently-playing` scope
+- ✅ Refresh token every hour (Spotify tokens expire)
 
 ### Games not starting
 - ✅ Module must be enabled
@@ -247,13 +337,21 @@ The bot will automatically detect song changes and announce them!
 - ✅ Bot must be running
 - ✅ No active PK (games pause during PKs)
 
+### Bot messages not appearing in SUGO
+- ✅ Verify your bot token has chat permissions
+- ✅ Check that the SUGO API endpoint is correct
+- ✅ Look at browser console for CORS errors
+- ✅ Ensure bot account is not rate-limited
+
 ---
 
-## 🎤 Philosophy: The Silent Jefe
+## 🎤 Philosophy: The Rich Legacy
 
-You are the **Silent Jefe**—the boss who doesn't need to speak. Your music is the vibe, and this bot is your voice. You stay in the power seat, play your tracks, and let the bot create the dinámica.
+You are **Rich $teve**—building a legacy one stream at a time. Your music is the vibe, and this bot is your voice. You control the show, play your tracks, and let the bot create the dinámica.
 
 **This is not a tool. This is your co-host.**
+
+**Colors**: Neon Orange (#FF5E00), Pure Black (#000000), Pure White (#FFFFFF)
 
 ---
 
@@ -271,4 +369,17 @@ Fork it, build it, share it!
 
 ---
 
-**Built for the Silent Jefes who run the show. 🎵👑**
+## 🔮 Future Enhancements
+
+- OAuth 2.0 flow for Spotify (auto-refresh tokens)
+- Full SUGO WebSocket integration
+- Custom game creation in dashboard
+- Message templates editor
+- Analytics dashboard (gifts, engagement, peak times)
+- Multi-language support
+- Voice TTS announcements
+- Integration with other music platforms (Apple Music, YouTube Music)
+
+---
+
+**Built for Rich $teve. Building the Legacy. 💰**
