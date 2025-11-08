@@ -484,6 +484,71 @@ body::before {
   font-size: 0.9em;
 }
 
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 15px;
+  }
+
+  .dashboard-header {
+    padding: 25px 20px;
+    margin-bottom: 25px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 2.2em;
+    letter-spacing: 1px;
+  }
+
+  .tagline {
+    font-size: 1em;
+  }
+
+  .main-controls {
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+
+  .config-section, .power-control {
+    padding: 20px;
+  }
+
+  .power-button {
+    width: 150px;
+    height: 150px;
+    font-size: 1em;
+  }
+
+  .modules-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 25px;
+  }
+
+  .module-card {
+    padding: 20px;
+  }
+
+  .test-controls {
+    padding: 20px;
+    margin-bottom: 25px;
+  }
+
+  .test-buttons {
+    flex-direction: column;
+  }
+
+  .test-buttons button {
+    width: 100%;
+  }
+
+  .form-group input,
+  .module-settings input[type="number"] {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
 @media (max-width: 1024px) {
   .main-controls {
     grid-template-columns: 1fr;
@@ -494,6 +559,6 @@ body::before {
   }
 
   .dashboard-header h1 {
-    font-size: 2em;
+    font-size: 2.5em;
   }
 }
