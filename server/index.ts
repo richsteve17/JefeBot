@@ -18,6 +18,9 @@ interface BotConfig {
   sugoRoomId: string;
   botAccountToken: string;
   sugoUid: string;              // SUGO user ID
+  sugoDeviceId?: string;        // Device ID (did)
+  sugoActivityId?: number;      // Activity/stream ID
+  sugoAppVersion?: string;      // App version
   spotifyAccessToken?: string;
   // internal: WS url + headers captured via mitm; keep these server-side only
   sugoWsUrl?: string;
@@ -48,18 +51,21 @@ interface StoredConfig {
 const defaults: StoredConfig = {
   botConfig: {
     sugoRoomId: '1250911',
-    botAccountToken: 'LLAWRORtEXmBfK7Hyj3pd1MOfh3hyu67', // Your token from Proxyman
-    sugoUid: '47585713',         // Your UID from Proxyman
+    botAccountToken: 'e9ScmfqaeHsklb7yR7gS9M4TnzXwiZF1', // FRESH token from latest Proxyman capture
+    sugoUid: '47585713',
+    sugoDeviceId: '654fab11f3b88db3fbfdd2c400e63142a3b4f455',
+    sugoActivityId: 10231,
+    sugoAppVersion: 'vc-392401-vn-2.40.1',
     spotifyAccessToken: '',
     sugoWsUrl: 'wss://activity-ws-rpc.voicemaker.media/ws/activity',
     sugoWsHeaders: {
-      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept-Encoding': 'gzip, deflate',
       'Accept-Language': 'en-US,en;q=0.9',
       'Cache-Control': 'no-cache',
-      'Host': 'activity-ws-rpc.voicemaker.media',
-      'Origin': 'https://www.sugo.com',
+      'Origin': 'https://activity-h5.voicemaker.media', // CORRECTED from www.sugo.com
       'Pragma': 'no-cache',
-      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) SUGO/392401 version/vc-392401-vn-2.40.1 statusHeight/54.0 LangCode/en',
+      'Cookie': 'appsflyer-id=1734994530097-1901624; brand=iPhone; channel=AppStore; did=654fab11f3b88db3fbfdd2c400e63142a3b4f455; http_ip=; idfa=3984AFF3-7633-4298-91C0-7A89AFDE80F6; language=en; locale=en_US; mcc=65535; os=ios-26.1-iPhone 16 Pro Max; pkg=com.maker.sugo; show-id=47585713; timezone=-5; token=e9ScmfqaeHsklb7yR7gS9M4TnzXwiZF1; uid=47585713; version=vc-392401-vn-2.40.1'
     }
   },
   moduleConfig: {
@@ -95,17 +101,20 @@ function buildSugo() {
   const url = config.botConfig.sugoWsUrl;
   const headers = config.botConfig.sugoWsHeaders || {};
 
-  // Protocol string goes in the subprotocol, not in message frames
-  // Example formats seen in the wild:
-  //   "im-auth;v=1;token=<JWT>"
-  //   "activity-auth,<token>"
-  // TODO: Capture the exact format from Proxyman's pre-WS HTTP call
-  const buildProtocol = (token: string) => {
-    // PLACEHOLDER: Update this with the actual format from your capture
-    // Common patterns:
-    return `im-auth;v=1;token=${token}`;
-    // or: return `activity-auth,${token}`;
-    // or: return token; // if it's just the raw token
+  // Build the exact two-protocol format from Proxyman capture:
+  // Protocol 1: token
+  // Protocol 2: URL-encoded JSON with uid, did, version, activity_id
+  const buildProtocol = (token: string, uid: string, deviceId: string, version: string, activityId: number): string[] => {
+    const metadata = JSON.stringify({
+      uid,
+      did: deviceId,
+      version,
+      activity_id: activityId
+    });
+    return [
+      token,
+      encodeURIComponent(metadata)
+    ];
   };
 
   const makeConnectFrame = () => {
@@ -131,31 +140,35 @@ function buildSugo() {
 
   // Refresh token from SUGO's HTTP endpoint before WS connect
   const refreshToken = async () => {
-    // TODO: Implement the pre-WS HTTP call you captured in Proxyman
-    // Example:
-    // const res = await fetch('https://activity-ws-rpc.voicemaker.media/api/ticket', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json', ...config.botConfig.sugoWsHeaders },
-    //   body: JSON.stringify({ roomId: config.botConfig.sugoRoomId, uid: config.botConfig.sugoUid })
-    // });
-    // const { token } = await res.json();
-    // return { protocol: buildProtocol(token) };
-
-    // PLACEHOLDER: Return current token until we capture the refresh endpoint
-    log('SUGO: Token refresh not implemented yet - using stored token');
-    return { protocol: buildProtocol(config.botConfig.botAccountToken) };
+    // TODO: Implement the pre-WS HTTP call if you capture one
+    // For now, rebuild protocol from stored credentials
+    log('SUGO: Rebuilding protocol from stored credentials');
+    const protocols = buildProtocol(
+      config.botConfig.botAccountToken,
+      config.botConfig.sugoUid,
+      config.botConfig.sugoDeviceId || '',
+      config.botConfig.sugoAppVersion || 'vc-392401-vn-2.40.1',
+      config.botConfig.sugoActivityId || 10231
+    );
+    return { protocol: protocols };
   };
 
   const client = new SugoClient({
     url,
     headers,
-    protocols: buildProtocol(config.botConfig.botAccountToken), // Pass protocol explicitly
+    protocols: buildProtocol(
+      config.botConfig.botAccountToken,
+      config.botConfig.sugoUid,
+      config.botConfig.sugoDeviceId || '',
+      config.botConfig.sugoAppVersion || 'vc-392401-vn-2.40.1',
+      config.botConfig.sugoActivityId || 10231
+    ),
     roomId: config.botConfig.sugoRoomId,
     token: config.botConfig.botAccountToken,
     uid: config.botConfig.sugoUid,
     heartbeatMs: 25000,
     decompress: 'auto',
-    makeConnectFrame,  // Renamed from makeAuthFrame
+    makeConnectFrame,
     makeJoinFrame,
     makeSendFrame,
     refreshToken

@@ -21,7 +21,7 @@ export interface SugoClientOpts {
   // Exact JSON the app uses to send a chat message:
   makeSendFrame: (roomId: string, text: string) => string | Buffer;
   // Called before reconnect to fetch fresh token/protocol
-  refreshToken?: () => Promise<{ protocol?: string; headers?: Record<string, string> }>;
+  refreshToken?: () => Promise<{ protocol?: string | string[]; headers?: Record<string, string> }>;
 }
 
 export interface SugoEventMap {
@@ -53,6 +53,13 @@ export class SugoClient extends EventEmitter {
 
     const headers = { ...this.opts.headers };
     const protocols = this.opts.protocols; // Use first-class protocols value
+
+    // Log the protocol we're sending (redact token for security)
+    if (protocols) {
+      const protocolStr = Array.isArray(protocols) ? protocols : [protocols];
+      const redacted = protocolStr.map((p, i) => i === 0 ? `${p.slice(0, 8)}...` : p);
+      this.emit('log', `SUGO: Sending protocols: [${redacted.join(', ')}]`);
+    }
 
     this.ws = new WebSocket(this.opts.url, protocols, {
       headers,
@@ -224,7 +231,8 @@ export class SugoClient extends EventEmitter {
           const res = await this.opts.refreshToken();
           if (res?.protocol) {
             this.opts.protocols = res.protocol;
-            this.emit('log', `SUGO: Got fresh protocol: ${res.protocol.slice(0, 60)}...`);
+            const protocolStr = Array.isArray(res.protocol) ? res.protocol.join(', ') : res.protocol;
+            this.emit('log', `SUGO: Got fresh protocol: ${protocolStr.slice(0, 60)}...`);
           }
           if (res?.headers) {
             this.opts.headers = { ...this.opts.headers, ...res.headers };
