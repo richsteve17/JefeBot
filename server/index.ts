@@ -130,15 +130,19 @@ function buildSugo() {
     params: { channel: `room:${roomId}` }
   });
 
+  // Sequence number counter (small incrementing int, not timestamp!)
+  let seqNum = 1;
+  const nextSeq = () => seqNum++;
+
   const makeSendFrame = (roomId: string, text: string) => {
     // SUGO uses cmd-based protocol (we saw cmd 338 for hello)
-    // Try common chat cmd codes: 301, 302, 310, or 311
-    // Multiple attempts with different common patterns
+    // Server error showed "LargestInt out of range" when using Date.now()
+    // Use small incrementing sequence number instead
     const attempts = [
       // Pattern 1: Standard cmd-based chat
       {
         cmd: 301,
-        sn: Date.now(),
+        sn: nextSeq(),
         data: {
           content: text,
           room_id: roomId
@@ -147,7 +151,7 @@ function buildSugo() {
       // Pattern 2: Alternative field names
       {
         cmd: 302,
-        sn: Date.now(),
+        sn: nextSeq(),
         data: {
           msg: text,
           room: roomId
@@ -156,7 +160,7 @@ function buildSugo() {
       // Pattern 3: Message object wrapper
       {
         cmd: 310,
-        sn: Date.now(),
+        sn: nextSeq(),
         data: {
           message: {
             text: text,
@@ -364,10 +368,13 @@ app.post('/api/test/chat-discovery', (_req, res) => {
 
   log('===== CHAT FORMAT DISCOVERY =====');
 
+  // Use small sequence numbers (not Date.now() which is too large)
+  let testSeq = 1;
+
   // Format 1: cmd 301 with content field
   const f1 = JSON.stringify({
     cmd: 301,
-    sn: Date.now(),
+    sn: testSeq++,
     data: { content: testMsg, room_id: roomId }
   });
   log(`TRY 1 (cmd 301): ${f1}`);
@@ -377,7 +384,7 @@ app.post('/api/test/chat-discovery', (_req, res) => {
   setTimeout(() => {
     const f2 = JSON.stringify({
       cmd: 302,
-      sn: Date.now() + 1,
+      sn: testSeq++,
       data: { msg: testMsg, room: roomId }
     });
     log(`TRY 2 (cmd 302): ${f2}`);
@@ -388,7 +395,7 @@ app.post('/api/test/chat-discovery', (_req, res) => {
   setTimeout(() => {
     const f3 = JSON.stringify({
       cmd: 310,
-      sn: Date.now() + 2,
+      sn: testSeq++,
       data: { message: { text: testMsg, type: 1 }, room_id: roomId }
     });
     log(`TRY 3 (cmd 310): ${f3}`);
@@ -398,7 +405,7 @@ app.post('/api/test/chat-discovery', (_req, res) => {
   // Format 4: Centrifugo-style (original)
   setTimeout(() => {
     const f4 = JSON.stringify({
-      id: Date.now() + 3,
+      id: testSeq++,
       method: 'publish',
       params: { channel: `room:${roomId}`, data: { message: testMsg } }
     });
