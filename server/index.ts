@@ -3,7 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import express from 'express';
 import { WebSocketServer } from 'ws';
-import { SugoClient } from './sugoClient.js';
+import { SugoClient, SugoWireMessage } from './sugoClient.js';
+import { tapWireMessage } from './wireTap.js';
 
 type Conn = import('ws').WebSocket;
 
@@ -184,17 +185,31 @@ function buildSugo() {
     broadcast({ type: 'bot_status', data: { sugo: 'disconnected' } });
   });
   client.on('error', (e) => log(`SUGO error: ${e.message}`));
-  client.on('message', (msg) => {
-    // Log incoming messages to help debug
-    log(`SUGO incoming: ${JSON.stringify(msg).substring(0, 200)}`);
 
-    // Optional: derive PK/game/song from incoming events
-    try {
-      if (msg?.type === 'PK_START') state.activePK = msg.payload;
-      if (msg?.type === 'PK_END') state.activePK = undefined;
-      if (msg?.type === 'NOW_PLAYING') state.currentSong = msg.payload;
-      broadcast({ type: 'state_updated', data: state });
-    } catch {}
+  // Wire tap for analytics
+  client.on('unknown', (wire: SugoWireMessage) => {
+    tapWireMessage(wire);
+    log(`SUGO unknown cmd ${wire.cmd}: ${JSON.stringify(wire).slice(0, 150)}`);
+  });
+
+  // Typed event handlers (will implement as we discover cmd codes)
+  client.on('hello', (wire: SugoWireMessage) => {
+    log(`SUGO hello cmd ${wire.cmd}: ${JSON.stringify(wire.data).slice(0, 100)}`);
+  });
+
+  client.on('gift', (data) => {
+    // TODO: Wire to coordinator
+    log(`SUGO gift event: ${JSON.stringify(data).slice(0, 100)}`);
+  });
+
+  client.on('chat', (data) => {
+    // TODO: Wire to coordinator
+    log(`SUGO chat event: ${JSON.stringify(data).slice(0, 100)}`);
+  });
+
+  client.on('pk', (data) => {
+    // TODO: Wire to coordinator
+    log(`SUGO PK event: ${JSON.stringify(data).slice(0, 100)}`);
   });
 
   return client;
@@ -279,6 +294,16 @@ app.post('/api/test/vibe-check', (_req, res) => {
     if (sugo?.isOpen()) sugo.sendChat('🎧 Vibe check: 1 = mid, 5 = banger. Drop your number.');
   }
   res.json({ ok: true });
+});
+
+// Test chat connectivity
+app.post('/api/test/chat', (req, res) => {
+  const { message } = req.body || {};
+  if (!sugo?.isOpen()) {
+    return res.status(400).json({ success: false, message: 'SUGO not connected' });
+  }
+  const sent = sugo.sendChat(message || '🎯 Test message from Jefe Bot');
+  res.json({ success: sent });
 });
 
 // Serve index.html for all other routes (SPA fallback)

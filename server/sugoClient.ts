@@ -31,6 +31,21 @@ export interface SugoEventMap {
   message: [data: any]; // decoded if possible, else raw string
   raw: [buf: Buffer];   // always the raw WS frame as bytes
   log: [msg: string];
+  // SUGO-specific events
+  hello: [data: SugoWireMessage];
+  gift: [data: any];
+  chat: [data: any];
+  pk: [data: any];
+  join: [data: any];
+  unknown: [data: SugoWireMessage];
+}
+
+export interface SugoWireMessage {
+  cmd: number;
+  data?: any;
+  rc?: number;
+  msg?: string;
+  sn?: number;
 }
 
 export class SugoClient extends EventEmitter {
@@ -41,6 +56,7 @@ export class SugoClient extends EventEmitter {
   private helloTimer: NodeJS.Timeout | null = null;
   private closedManually = false;
   private stage: 'idle' | 'awaiting_connect_response' | 'subscribed' = 'idle';
+  private joined = false; // Single-flight JOIN guard
 
   constructor(opts: SugoClientOpts) {
     super();
@@ -94,9 +110,7 @@ export class SugoClient extends EventEmitter {
           this.stage = 'awaiting_connect_response';
         } else {
           // No CONNECT frame defined, go straight to JOIN
-          this.ws?.send(this.opts.makeJoinFrame(this.opts.roomId));
-          this.emit('log', 'SUGO: Sent JOIN (no CONNECT in this protocol)');
-          this.stage = 'subscribed';
+          this.sendJoin();
         }
       }, 500);
     });
@@ -131,10 +145,11 @@ export class SugoClient extends EventEmitter {
           this.emit('log', 'SUGO: Sent CONNECT (hello-first path)');
           this.stage = 'awaiting_connect_response';
         } else {
-          this.ws?.send(this.opts.makeJoinFrame(this.opts.roomId));
-          this.emit('log', 'SUGO: Sent JOIN');
-          this.stage = 'subscribed';
+          this.sendJoin();
         }
+
+        // Route the hello message
+        this.routeMessage(text);
         return;
       }
 
@@ -144,31 +159,25 @@ export class SugoClient extends EventEmitter {
         let ok = false;
         try {
           const j = JSON.parse(text);
-          this.emit('message', j);
-          ok = !!(j.result || j.connected || j.ok || j.type === 'WELCOME' || j.type === 'CONNECTED');
+          ok = !!(j.result || j.connected || j.ok || j.type === 'WELCOME' || j.type === 'CONNECTED' || (j.rc === 0 && j.msg === 'OK'));
         } catch {
-          this.emit('message', text);
           ok = /connected|welcome|ok/i.test(text);
         }
 
         if (ok) {
           this.emit('log', 'SUGO: Server accepted CONNECT, sending JOIN...');
-          this.ws?.send(this.opts.makeJoinFrame(this.opts.roomId));
-          this.emit('log', 'SUGO: Sent JOIN after CONNECT');
-          this.stage = 'subscribed';
+          this.sendJoin();
         } else {
           this.emit('log', 'SUGO: Server response unclear, treating as rejection');
         }
+
+        // Route the message regardless
+        this.routeMessage(text);
         return;
       }
 
-      // 3) After subscribed, just emit normal messages
-      try {
-        const j = JSON.parse(text);
-        this.emit('message', j);
-      } catch {
-        this.emit('message', text);
-      }
+      // 3) After subscribed, route all messages through cmd handler
+      this.routeMessage(text);
     });
 
     this.ws.on('close', (code, reason) => {
@@ -195,6 +204,48 @@ export class SugoClient extends EventEmitter {
     this.ws = null;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.stage = 'idle';
+    this.joined = false; // Reset JOIN guard on disconnect
+  }
+
+  // Single-flight JOIN to prevent duplicates
+  private sendJoin() {
+    if (this.joined) {
+      this.emit('log', 'SUGO: JOIN already sent, skipping duplicate');
+      return;
+    }
+    this.ws?.send(this.opts.makeJoinFrame(this.opts.roomId));
+    this.joined = true;
+    this.stage = 'subscribed';
+    this.emit('log', 'SUGO: Sent JOIN');
+  }
+
+  // Cmd-based message router
+  private routeMessage(text: string) {
+    let wire: SugoWireMessage;
+    try {
+      wire = JSON.parse(text);
+    } catch {
+      // Not JSON, emit as raw message
+      this.emit('message', text);
+      return;
+    }
+
+    // Always emit the generic message event
+    this.emit('message', wire);
+
+    // Route by cmd if present
+    if (typeof wire.cmd !== 'number') return;
+
+    switch (wire.cmd) {
+      case 338: // Hello/auth success
+        this.emit('hello', wire);
+        break;
+      // TODO: Add more cmd handlers as we discover them
+      // Gift events, chat events, PK events, etc.
+      default:
+        this.emit('unknown', wire);
+        break;
+    }
   }
 
   isOpen() {
