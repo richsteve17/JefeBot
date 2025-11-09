@@ -65,11 +65,25 @@ export class SugoClient extends EventEmitter {
 
     this.ws.on('open', () => {
       this.emit('open');
-      this.emit('log', 'SUGO: WebSocket opened, waiting for server hello...');
+      this.emit('log', 'SUGO: WebSocket opened, sending CONNECT immediately...');
       this.startHeartbeat();
+
+      // Send CONNECT frame immediately (server doesn't send hello first)
+      const connectFrame = this.opts.makeAuthFrame?.();
+      if (connectFrame) {
+        this.ws?.send(connectFrame);
+        this.emit('log', 'SUGO: Sent CONNECT frame');
+        stage = 'awaiting_connect_response';
+      } else {
+        // No auth frame, go straight to subscribe
+        const sub = this.opts.makeJoinFrame(this.opts.roomId);
+        this.ws?.send(sub);
+        this.emit('log', 'SUGO: Sent SUBSCRIBE frame (no auth needed)');
+        stage = 'subscribed';
+      }
     });
 
-    let stage: 'idle' | 'connected' | 'subscribed' = 'idle';
+    let stage: 'idle' | 'awaiting_connect_response' | 'subscribed' = 'idle';
 
     this.ws.on('message', (data: WebSocket.RawData) => {
       const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as any);
@@ -80,23 +94,9 @@ export class SugoClient extends EventEmitter {
       // Quick visibility while dialing in
       this.emit('log', `WIRE<< ${text.slice(0, 120)}`);
 
-      // 1) First server message arrives -> send CONNECT
-      if (stage === 'idle') {
-        this.emit('log', 'SUGO: Received server hello, sending CONNECT...');
-        // OPTION A: token is in subprotocol; no extra CONNECT payload needed.
-        // OPTION B (Centrifugo-style): send a "connect" JSON with token.
-        const connectFrame = this.opts.makeAuthFrame?.();
-        if (connectFrame) {
-          this.ws?.send(connectFrame);
-          this.emit('log', 'SUGO: Sent CONNECT frame');
-        }
-        stage = 'connected';
-        return;
-      }
-
-      // 2) After we see a server "connected"/ok, send SUBSCRIBE/JOIN
-      if (stage === 'connected') {
-        this.emit('log', 'SUGO: Checking if server accepted CONNECT...');
+      // 1) Waiting for server to accept CONNECT
+      if (stage === 'awaiting_connect_response') {
+        this.emit('log', 'SUGO: Checking server response to CONNECT...');
         // Heuristic: if server sends plain "RECONNECT" it means it didn't like your connect payload.
         // If you see a JSON with { "result": { "client": ... } } or "connected", then subscribe.
         try {
@@ -124,7 +124,7 @@ export class SugoClient extends EventEmitter {
         return;
       }
 
-      // 3) After subscribed, just emit normal messages
+      // 2) After subscribed, just emit normal messages
       try {
         const j = JSON.parse(text);
         this.emit('message', j);
