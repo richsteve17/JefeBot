@@ -107,8 +107,50 @@ export class JefeBotCoordinator {
   }
 
   updateModuleConfig(newConfig: ModuleConfig): void {
+    const wasRunning = this.isRunning;
     this.moduleConfig = newConfig;
-    this.applyModuleConfig(newConfig);
+
+    // If bot is running, apply config changes with proper start/stop
+    if (wasRunning) {
+      this.applyModuleConfigRuntime(newConfig);
+    } else {
+      // Just update settings if bot isn't running yet
+      this.applyModuleConfig(newConfig);
+    }
+  }
+
+  private async applyModuleConfigRuntime(config: ModuleConfig): Promise<void> {
+    // El Músico - restart if enabled state changed
+    const musicoWasEnabled = this.elMusico.isEnabled();
+    this.elMusico.setEnabled(config.elMusico.enabled);
+    this.elMusico.setVibeCheckEnabled(config.elMusico.vibeCheckEnabled);
+
+    if (config.elMusico.enabled && !musicoWasEnabled) {
+      await this.elMusico.startMonitoring();
+    } else if (!config.elMusico.enabled && musicoWasEnabled) {
+      await this.elMusico.cleanup();
+    }
+
+    // El Anunciador - just toggle (event-driven, no timers)
+    this.elAnunciador.setEnabled(config.elAnunciador.enabled);
+
+    // El Maestro del Juego - restart if enabled state changed
+    const maestroWasEnabled = this.elMaestroDelJuego.isEnabled();
+    this.elMaestroDelJuego.setEnabled(config.elMaestroDelJuego.enabled);
+    this.elMaestroDelJuego.setIntervalMinutes(config.elMaestroDelJuego.intervalMinutes);
+    this.elMaestroDelJuego.setEnabledGames(config.elMaestroDelJuego.enabledGames);
+
+    if (config.elMaestroDelJuego.enabled && !maestroWasEnabled) {
+      await this.elMaestroDelJuego.startGameLoop();
+    } else if (!config.elMaestroDelJuego.enabled && maestroWasEnabled) {
+      await this.elMaestroDelJuego.cleanup();
+    }
+
+    // El Hype Man - just toggle (event-driven, no timers)
+    this.elHypeMan.setEnabled(config.elHypeMan.enabled);
+    this.elHypeMan.setMinimumDiamonds(config.elHypeMan.minimumDiamonds);
+
+    console.log('[JefeBot] Module configuration updated at runtime');
   }
 
   private applyModuleConfig(config: ModuleConfig): void {
