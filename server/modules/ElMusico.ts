@@ -103,16 +103,16 @@ export class ElMusico extends BaseModule {
     // Message 1: Now Playing
     const nowPlayingMsg: BotMessage = {
       type: 'chat',
-      content: `[Rich$teve] 🎧 Now Playing: '${track.name}' - ${track.artist}`
+      content: `🎧 Now Playing: ${track.name} - ${track.artist}`
     };
 
     await this.sendMessage(nowPlayingMsg, this.sendMessageFn);
 
-    // Message 2: Vibe Check (5 seconds later)
+    // Message 2: Vibe Check with concrete CTA (5 seconds later)
     if (this.vibeCheckEnabled) {
       const vibeCheckMsg: BotMessage = {
         type: 'chat',
-        content: `[Rich$teve] 🔥 VIBE CHECK! 🔥 How we feeling?\n[Rich$teve] Send a 'Corazón' (❤️) if you LOVE this song!\n[Rich$teve] Send a 'Broken Heart' (💔) if it hurts so good!`,
+        content: `🎶 Vibe Check: 1 = mid, 5 = banger.\nDrop your rating! If 4+ wins, track stays. If not, top gifter picks the switch. 🔥`,
         delay: 5000
       };
 
@@ -122,13 +122,13 @@ export class ElMusico extends BaseModule {
     this.log(`Announced: ${track.name} by ${track.artist}`);
   }
 
-  // Manual trigger for testing
+  // Manual trigger for testing / lull detector
   async triggerVibeCheck(): Promise<void> {
-    if (!this.sendMessageFn || !this.state.currentSong) return;
+    if (!this.sendMessageFn) return;
 
     const vibeCheckMsg: BotMessage = {
       type: 'chat',
-      content: `[Rich$teve] 🔥 VIBE CHECK! 🔥 How we feeling?\n[Rich$teve] Send a 'Corazón' (❤️) if you LOVE this song!\n[Rich$teve] Send a 'Broken Heart' (💔) if it hurts so good!`
+      content: `🎶 Vibe Check: Drop 1-5 in chat!\n1 = skip it, 5 = certified banger.\nHighest score picks next song if they gift 🎵`
     };
 
     await this.sendMessage(vibeCheckMsg, this.sendMessageFn);

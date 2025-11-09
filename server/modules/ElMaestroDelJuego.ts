@@ -55,6 +55,13 @@ export class ElMaestroDelJuego extends BaseModule {
     this.log('Game loop started');
   }
 
+  // Render progress bar: [▮▮▮▯▯]
+  private renderProgressBar(current: number, goal: number, length: number = 5): string {
+    const filled = Math.min(Math.floor((current / goal) * length), length);
+    const empty = length - filled;
+    return '[' + '▮'.repeat(filled) + '▯'.repeat(empty) + ']';
+  }
+
   private async checkAndStartGame(): Promise<void> {
     // Don't start a game if:
     // 1. A PK is active
@@ -109,28 +116,56 @@ export class ElMaestroDelJuego extends BaseModule {
     if (!this.sendMessageFn) return;
 
     const duration = 60000; // 60 seconds
+    const goal = 10; // Target number of gifts
     const game: Game = {
       type: 'gift_burst',
       startTime: Date.now(),
       endTime: Date.now() + duration,
       isActive: true,
-      participants: new Map()
+      participants: new Map(),
+      goal
     };
 
     this.state.activeGame = game;
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[Rich$teve] 🔥 ¡REGALO RÁPIDO! (Gift Burst!) 🔥\n[Rich$teve] 60 seconds! Most 'Rose' gifts wins!\n[Rich$teve] ¡VAMOS!`
+      content: `⏳ 60s GIFT BURST: fill the bar and I drop a freestyle with your name!\nProgress: ${this.renderProgressBar(0, goal)}\n🌹 Drop roses NOW!`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
     this.log('Started Gift Burst game');
 
+    // Update progress every 10 seconds
+    const updateInterval = setInterval(async () => {
+      if (!this.state.activeGame?.isActive) {
+        clearInterval(updateInterval);
+        return;
+      }
+      await this.updateGiftBurstProgress();
+    }, 10000);
+
     // End game after duration
     setTimeout(async () => {
+      clearInterval(updateInterval);
       await this.endGiftBurst();
     }, duration);
+  }
+
+  private async updateGiftBurstProgress(): Promise<void> {
+    if (!this.sendMessageFn || !this.state.activeGame) return;
+
+    const game = this.state.activeGame;
+    const totalGifts = Array.from(game.participants.values()).reduce((a, b) => a + b, 0);
+    const goal = game.goal || 10;
+    const timeLeft = Math.ceil((game.endTime - Date.now()) / 1000);
+
+    const progressMsg: BotMessage = {
+      type: 'chat',
+      content: `⏱️ ${timeLeft}s left! ${this.renderProgressBar(totalGifts, goal)} ${totalGifts}/${goal}`
+    };
+
+    await this.sendMessage(progressMsg, this.sendMessageFn);
   }
 
   private async endGiftBurst(): Promise<void> {
@@ -141,12 +176,25 @@ export class ElMaestroDelJuego extends BaseModule {
       .sort((a, b) => b[1] - a[1]);
 
     const winner = participants[0];
+    const totalGifts = Array.from(game.participants.values()).reduce((a, b) => a + b, 0);
+    const goal = game.goal || 10;
+
+    let message = '';
+    if (winner) {
+      if (totalGifts >= goal) {
+        // Goal reached! Deliver the reward
+        message = `🏆 BURST COMPLETE! 🏆\n${winner[0]} wins with ${winner[1]} roses!\n🎤 Freestyle coming now with ${winner[0]}'s name! 🔥`;
+      } else {
+        // Winner but goal not reached
+        message = `⏱️ Time's up! ${this.renderProgressBar(totalGifts, goal)} ${totalGifts}/${goal}\n👑 ${winner[0]} led with ${winner[1]} roses!\nAlmost had it - next one! 💪`;
+      }
+    } else {
+      message = `⏱️ Time's up! No takers this round.\nNext burst starts soon 👀`;
+    }
 
     const endMsg: BotMessage = {
       type: 'announcement',
-      content: winner
-        ? `[Rich$teve] 🏆 ¡GANADOR! 🏆\n[Rich$teve] ${winner[0]} wins with ${winner[1]} roses!\n[Rich$teve] ¡Felicidades!`
-        : `[Rich$teve] ⏱️ Time's up!\n[Rich$teve] No participants this round. Next time!`
+      content: message
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);
@@ -159,7 +207,7 @@ export class ElMaestroDelJuego extends BaseModule {
     if (!this.sendMessageFn) return;
 
     const duration = 180000; // 3 minutes
-    const goal = 50;
+    const goal = 30; // More achievable goal
     const game: Game = {
       type: 'family_goal',
       startTime: Date.now(),
@@ -173,7 +221,7 @@ export class ElMaestroDelJuego extends BaseModule {
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[Rich$teve] 🤝 ¡META FAMILIAR! (Family Goal!) 🤝\n[Rich$teve] Let's hit ${goal} 'Palomitas' (Popcorn) gifts TOGETHER in 3 minutes!\n[Rich$teve] ¡Todos juntos! (All together!)`
+      content: `🤝 FAMILY GOAL: Hit ${goal} gifts in 3 mins = I run the wheel!\n${this.renderProgressBar(0, goal)} 0/${goal}\nEVERY gift counts! ¡Todos juntos!`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
@@ -200,11 +248,11 @@ export class ElMaestroDelJuego extends BaseModule {
 
     const game = this.state.activeGame;
     const totalGifts = Array.from(game.participants.values()).reduce((a, b) => a + b, 0);
-    const goal = game.goal || 50;
+    const goal = game.goal || 30;
 
     const progressMsg: BotMessage = {
       type: 'chat',
-      content: `[Rich$teve] 📊 Progress: ${totalGifts}/${goal}\n[Rich$teve] ${totalGifts >= goal ? '¡LO LOGRAMOS! (We did it!)' : '¡Sigue así! (Keep going!)'}`
+      content: `📊 ${this.renderProgressBar(totalGifts, goal)} ${totalGifts}/${goal}\n${totalGifts >= goal ? '✅ GOAL HIT! Wheel coming!' : '⬆️ Keep going familia!'}`
     };
 
     await this.sendMessage(progressMsg, this.sendMessageFn);
@@ -215,14 +263,14 @@ export class ElMaestroDelJuego extends BaseModule {
 
     const game = this.state.activeGame;
     const totalGifts = Array.from(game.participants.values()).reduce((a, b) => a + b, 0);
-    const goal = game.goal || 50;
+    const goal = game.goal || 30;
     const success = totalGifts >= goal;
 
     const endMsg: BotMessage = {
       type: 'announcement',
       content: success
-        ? `[Rich$teve] 🎉 ¡META ALCANZADA! 🎉\n[Rich$teve] ${totalGifts}/${goal} gifts!\n[Rich$teve] ¡La familia es fuerte! (The family is strong!)`
-        : `[Rich$teve] ⏱️ Time's up!\n[Rich$teve] ${totalGifts}/${goal} gifts. Almost there!\n[Rich$teve] Next time we'll get it!`
+        ? `🎉 FAMILY GOAL COMPLETE! 🎉\n${this.renderProgressBar(totalGifts, goal)} ${totalGifts}/${goal}\n🎡 Spinning the wheel NOW! La familia es fuerte! 💪`
+        : `⏱️ Time's up! ${this.renderProgressBar(totalGifts, goal)} ${totalGifts}/${goal}\nAlmost there! Next goal soon 👀`
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);
@@ -234,44 +282,69 @@ export class ElMaestroDelJuego extends BaseModule {
   private async startKingOfTheHill(): Promise<void> {
     if (!this.sendMessageFn) return;
 
-    const duration = 300000; // 5 minutes
+    const duration = 90000; // 90 seconds (shorter = more excitement)
     const game: Game = {
       type: 'king_of_the_hill',
       startTime: Date.now(),
       endTime: Date.now() + duration,
       isActive: true,
-      participants: new Map()
+      participants: new Map(),
+      lastGifter: undefined
     };
 
     this.state.activeGame = game;
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[Rich$teve] 👑 ¡REY DE LA COLINA! (King of the Hill!) 👑\n[Rich$teve] 5-minute timer. The person who sends the LAST gift before the timer hits 0 wins the crown!\n[Rich$teve] ¡Pelea por la corona! (Fight for the crown!)`
+      content: `👑 KING OF THE HILL! 👑\n90s timer. Last gift sent = you get the horn + shout-out!\nAny gift within 90s steals it. Fight for the throne! ⚔️`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
     this.log('Started King of the Hill game');
 
+    // Announce leader every 20 seconds
+    const updateInterval = setInterval(async () => {
+      if (!this.state.activeGame?.isActive) {
+        clearInterval(updateInterval);
+        return;
+      }
+      await this.updateKingStatus();
+    }, 20000);
+
     // End game after duration
     setTimeout(async () => {
+      clearInterval(updateInterval);
       await this.endKingOfTheHill();
     }, duration);
+  }
+
+  private async updateKingStatus(): Promise<void> {
+    if (!this.sendMessageFn || !this.state.activeGame) return;
+
+    const game = this.state.activeGame;
+    const timeLeft = Math.ceil((game.endTime - Date.now()) / 1000);
+    const currentKing = game.lastGifter;
+
+    if (currentKing) {
+      const statusMsg: BotMessage = {
+        type: 'chat',
+        content: `⏱️ ${timeLeft}s left: ${currentKing} holds the throne!\nAny gift steals it! 👑`
+      };
+      await this.sendMessage(statusMsg, this.sendMessageFn);
+    }
   }
 
   private async endKingOfTheHill(): Promise<void> {
     if (!this.sendMessageFn || !this.state.activeGame) return;
 
     const game = this.state.activeGame;
-    // The last participant to send a gift wins
-    const participants = Array.from(game.participants.entries());
-    const winner = participants[participants.length - 1];
+    const winner = game.lastGifter;
 
     const endMsg: BotMessage = {
       type: 'announcement',
       content: winner
-        ? `[Rich$teve] 👑 ¡EL REY/LA REINA! 👑\n[Rich$teve] ${winner[0]} holds the crown!\n[Rich$teve] ¡Felicidades!`
-        : `[Rich$teve] ⏱️ Time's up!\n[Rich$teve] No king this round!`
+        ? `👑 KING OF THE HILL OVER! 👑\n${winner} HOLDS THE THRONE!\n🔊 Horn goes to ${winner}! Respect! 🙌`
+        : `⏱️ Time's up! No one claimed the throne this round.\nNext king coming soon 👀`
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);
@@ -281,19 +354,33 @@ export class ElMaestroDelJuego extends BaseModule {
   }
 
   // Track gift participation
-  async onGiftReceived(username: string, giftName: string): Promise<void> {
+  async onGiftReceived(username: string, _giftName: string): Promise<void> {
     if (!this.state.activeGame?.isActive) return;
 
     const game = this.state.activeGame;
     const current = game.participants.get(username) || 0;
     game.participants.set(username, current + 1);
 
+    // King of the Hill: track last gifter
+    if (game.type === 'king_of_the_hill') {
+      game.lastGifter = username;
+    }
+
     // Check if family goal is reached
     if (game.type === 'family_goal') {
       const totalGifts = Array.from(game.participants.values()).reduce((a, b) => a + b, 0);
-      if (totalGifts >= (game.goal || 50)) {
+      if (totalGifts >= (game.goal || 30)) {
         // Goal reached early!
         await this.endFamilyGoal();
+      }
+    }
+
+    // Check if gift burst goal is reached
+    if (game.type === 'gift_burst') {
+      const totalGifts = Array.from(game.participants.values()).reduce((a, b) => a + b, 0);
+      if (totalGifts >= (game.goal || 10)) {
+        // Goal reached early!
+        await this.endGiftBurst();
       }
     }
   }

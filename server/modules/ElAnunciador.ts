@@ -6,6 +6,7 @@ import { BotMessage, BotState, PKBattle } from '../types.js';
 
 export class ElAnunciador extends BaseModule {
   private updateInterval?: NodeJS.Timeout;
+  private snipeTimers: NodeJS.Timeout[] = [];
   private sendMessageFn?: (msg: string) => Promise<void>;
 
   constructor(state: BotState) {
@@ -20,6 +21,12 @@ export class ElAnunciador extends BaseModule {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
+    this.clearSnipeTimers();
+  }
+
+  private clearSnipeTimers(): void {
+    this.snipeTimers.forEach(timer => clearTimeout(timer));
+    this.snipeTimers = [];
   }
 
   setSendMessageFunction(fn: (msg: string) => Promise<void>): void {
@@ -34,14 +41,70 @@ export class ElAnunciador extends BaseModule {
 
     const startMsg: BotMessage = {
       type: 'announcement',
-      content: `[Rich$teve] 🔴🔵 ¡ES TIEMPO DE BATALLA! 🔴🔵\n[Rich$teve] ${pk.team1} vs ${pk.team2}\n[Rich$teve] ¡VAMOS! Let's GO!`
+      content: `🥊 PK BATTLE STARTING! 🥊\n${pk.team1} 🔴 vs 🔵 ${pk.team2}\n5 minutes on the clock. Drop gifts for your team!\n¡VAMOS!`
     };
 
     await this.sendMessage(startMsg, this.sendMessageFn);
     this.log(`PK Started: ${pk.team1} vs ${pk.team2}`);
 
+    // Schedule snipe callouts at 30/15/5 seconds
+    this.scheduleSnipeCallouts(pk);
+
     // Start providing updates every 60 seconds
     this.startUpdates();
+  }
+
+  private scheduleSnipeCallouts(pk: PKBattle): void {
+    this.clearSnipeTimers();
+
+    const pkDuration = pk.endTime - Date.now();
+
+    // 30 second callout
+    const timer30s = setTimeout(() => {
+      this.snipeCallout(30);
+    }, pkDuration - 30000);
+
+    // 15 second callout
+    const timer15s = setTimeout(() => {
+      this.snipeCallout(15);
+    }, pkDuration - 15000);
+
+    // 5 second callout
+    const timer5s = setTimeout(() => {
+      this.snipeCallout(5);
+    }, pkDuration - 5000);
+
+    this.snipeTimers.push(timer30s, timer15s, timer5s);
+  }
+
+  private async snipeCallout(secondsRemaining: number): Promise<void> {
+    if (!this.sendMessageFn || !this.state.activePK) return;
+
+    const pk = this.state.activePK;
+    const diff = Math.abs(pk.team1Score - pk.team2Score);
+    const leader = pk.team1Score > pk.team2Score ? pk.team1 : pk.team2;
+    const trailing = pk.team1Score < pk.team2Score ? pk.team1 : pk.team2;
+
+    let message = '';
+
+    if (diff === 0) {
+      // Tied game - anyone can snipe
+      message = `⏱️ ${secondsRemaining}s: IT'S TIED!\nNext gift WINS the PK! 🔥`;
+    } else if (diff < 1000) {
+      // Close game - snipe ready
+      message = `⏱️ ${secondsRemaining}s: ${leader} up by ${diff}!\n🎯 SNIPE READY! One gift flips it!`;
+    } else {
+      // Bigger gap - comeback narrative
+      message = `⏱️ ${secondsRemaining}s: ${leader} leading!\n💥 ${trailing} fam - COMEBACK TIME! Drop heat!`;
+    }
+
+    const snipeMsg: BotMessage = {
+      type: 'chat',
+      content: message
+    };
+
+    await this.sendMessage(snipeMsg, this.sendMessageFn);
+    this.log(`Snipe callout: ${secondsRemaining}s remaining`);
   }
 
   private startUpdates(): void {
@@ -88,10 +151,11 @@ export class ElAnunciador extends BaseModule {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
     }
+    this.clearSnipeTimers();
 
     const endMsg: BotMessage = {
       type: 'announcement',
-      content: `[Rich$teve] 🏆 ¡BATALLA TERMINADA! 🏆\n[Rich$teve] Winner: ${winner}!\n[Rich$teve] Final Score: ${pk.team1}: ${pk.team1Score} | ${pk.team2}: ${pk.team2Score}${mvp ? `\n[Rich$teve] 👑 MVP: ${mvp}! 👑` : ''}`
+      content: `🏆 PK OVER! 🏆\n${winner} TAKES IT!\nFinal: ${pk.team1} ${pk.team1Score} - ${pk.team2Score} ${pk.team2}${mvp ? `\n👑 MVP: ${mvp}! 👑` : ''}\nGG to everyone who showed up!`
     };
 
     await this.sendMessage(endMsg, this.sendMessageFn);

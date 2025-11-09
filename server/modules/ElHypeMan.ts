@@ -40,27 +40,31 @@ export class ElHypeMan extends BaseModule {
   private async shoutOut(gift: Gift): Promise<void> {
     if (!this.sendMessageFn) return;
 
-    // Different messages based on gift value
-    let intensity = '';
-    let title = '';
+    // Tiered shoutouts with social proof & CTAs
+    let message = '';
 
-    if (gift.diamonds >= 10000) {
-      intensity = '💥💥💥 ¡EXPLOSIÓN! 💥💥💥';
-      title = '🌟 LEYENDA 🌟';
-    } else if (gift.diamonds >= 5000) {
-      intensity = '🔥🔥 ¡QUÉ LOCURA! 🔥🔥';
-      title = '👑 ROYALTY 👑';
+    if (gift.diamonds >= 5000) {
+      // WHALE TIER: Massive recognition + throne mechanics
+      message = `🔥🔥🔥 ${gift.username} just dropped ${gift.giftName} (${gift.diamonds})! 🔥🔥🔥\n👑 THE THRONE IS THEIRS 👑\nWho's brave enough to challenge the king?`;
+    } else if (gift.diamonds >= 2000) {
+      // HIGH TIER: Strong recognition + competition hook
+      message = `💥💥 ${gift.username} sent ${gift.giftName} (${gift.diamonds})! 💥💥\n⭐ VIP STATUS UNLOCKED ⭐\nCan anyone match this energy?`;
     } else if (gift.diamonds >= 1000) {
-      intensity = '💥 ¡INCREÍBLE! 💥';
-      title = '⭐ VIP ⭐';
+      // MID TIER: Recognition + social proof
+      message = `🎯 ${gift.username} dropped ${gift.giftName} (${gift.diamonds})!\n✨ Making moves! ✨\nShow love in chat!`;
+    } else if (gift.diamonds >= 300) {
+      // BASE TIER: Appreciation + encouragement (catches the long tail)
+      message = `🙌 ${gift.username} sent ${gift.giftName}! Real one!\nEvery gift counts familia 🧡`;
     }
 
-    const shoutMsg: BotMessage = {
-      type: 'announcement',
-      content: `[Rich$teve] ${intensity}\n[Rich$teve] ${title}\n[Rich$teve] ¡Todos saluden a ${gift.username} por el '${gift.giftName}'!\n[Rich$teve] (Everyone hail ${gift.username} for the '${gift.giftName}'!)`
-    };
+    if (message) {
+      const shoutMsg: BotMessage = {
+        type: 'announcement',
+        content: message
+      };
 
-    await this.sendMessage(shoutMsg, this.sendMessageFn);
-    this.log(`Big gift shout-out for ${gift.username} - ${gift.diamonds} diamonds`);
+      await this.sendMessage(shoutMsg, this.sendMessageFn);
+      this.log(`Tiered shout-out for ${gift.username} - ${gift.diamonds} diamonds`);
+    }
   }
 }

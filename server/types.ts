@@ -66,7 +66,8 @@ export interface Game {
   endTime: number;
   isActive: boolean;
   participants: Map<string, number>;
-  goal?: number; // for family goal
+  goal?: number; // for family goal and gift burst
+  lastGifter?: string; // for king of the hill
 }
 
 export interface BotState {

@@ -7,7 +7,7 @@ import { ElMaestroDelJuego } from './modules/ElMaestroDelJuego.js';
 import { ElHypeMan } from './modules/ElHypeMan.js';
 import { BotConfig, ModuleConfig, BotState, PKBattle, Gift } from './types.js';
 
-export class Rich$teve BotCoordinator {
+export class JefeBotCoordinator {
   private config: BotConfig;
   private moduleConfig: ModuleConfig;
   private state: BotState;
@@ -19,6 +19,15 @@ export class Rich$teve BotCoordinator {
   private elHypeMan: ElHypeMan;
 
   private isRunning: boolean = false;
+
+  // Cooldown & activity tracking
+  private lastBotMessageTime: number = 0;
+  private lastActivityTime: number = Date.now();
+  private recentGiftCount: number = 0;
+  private recentMessageCount: number = 0;
+  private lullCheckInterval: NodeJS.Timeout | null = null;
+  private readonly MIN_MESSAGE_INTERVAL = 20000; // 20 seconds minimum between bot messages
+  private readonly LULL_THRESHOLD = 75000; // 75 seconds of no activity = lull
 
   constructor(config: BotConfig, moduleConfig: ModuleConfig) {
     this.config = config;
@@ -36,8 +45,8 @@ export class Rich$teve BotCoordinator {
     this.elMaestroDelJuego = new ElMaestroDelJuego(this.state);
     this.elHypeMan = new ElHypeMan(this.state);
 
-    // Set message sending function for all modules
-    const sendMessageFn = async (msg: string) => await this.sendToSUGO(msg);
+    // Set message sending function for all modules with cooldown check
+    const sendMessageFn = async (msg: string) => await this.sendWithCooldown(msg);
     this.elMusico.setSendMessageFunction(sendMessageFn);
     this.elAnunciador.setSendMessageFunction(sendMessageFn);
     this.elMaestroDelJuego.setSendMessageFunction(sendMessageFn);
@@ -70,6 +79,9 @@ export class Rich$teve BotCoordinator {
       await this.elMaestroDelJuego.startGameLoop();
     }
 
+    // Start lull detector
+    this.startLullDetector();
+
     this.isRunning = true;
     console.log('[Rich$teve Bot] All systems GO! 🚀');
   }
@@ -78,6 +90,12 @@ export class Rich$teve BotCoordinator {
     if (!this.isRunning) return;
 
     console.log('[Rich$teve Bot] Stopping...');
+
+    // Stop lull detector
+    if (this.lullCheckInterval) {
+      clearInterval(this.lullCheckInterval);
+      this.lullCheckInterval = null;
+    }
 
     await this.elMusico.cleanup();
     await this.elAnunciador.cleanup();
@@ -89,8 +107,50 @@ export class Rich$teve BotCoordinator {
   }
 
   updateModuleConfig(newConfig: ModuleConfig): void {
+    const wasRunning = this.isRunning;
     this.moduleConfig = newConfig;
-    this.applyModuleConfig(newConfig);
+
+    // If bot is running, apply config changes with proper start/stop
+    if (wasRunning) {
+      this.applyModuleConfigRuntime(newConfig);
+    } else {
+      // Just update settings if bot isn't running yet
+      this.applyModuleConfig(newConfig);
+    }
+  }
+
+  private async applyModuleConfigRuntime(config: ModuleConfig): Promise<void> {
+    // El Músico - restart if enabled state changed
+    const musicoWasEnabled = this.elMusico.isEnabled();
+    this.elMusico.setEnabled(config.elMusico.enabled);
+    this.elMusico.setVibeCheckEnabled(config.elMusico.vibeCheckEnabled);
+
+    if (config.elMusico.enabled && !musicoWasEnabled) {
+      await this.elMusico.startMonitoring();
+    } else if (!config.elMusico.enabled && musicoWasEnabled) {
+      await this.elMusico.cleanup();
+    }
+
+    // El Anunciador - just toggle (event-driven, no timers)
+    this.elAnunciador.setEnabled(config.elAnunciador.enabled);
+
+    // El Maestro del Juego - restart if enabled state changed
+    const maestroWasEnabled = this.elMaestroDelJuego.isEnabled();
+    this.elMaestroDelJuego.setEnabled(config.elMaestroDelJuego.enabled);
+    this.elMaestroDelJuego.setIntervalMinutes(config.elMaestroDelJuego.intervalMinutes);
+    this.elMaestroDelJuego.setEnabledGames(config.elMaestroDelJuego.enabledGames);
+
+    if (config.elMaestroDelJuego.enabled && !maestroWasEnabled) {
+      await this.elMaestroDelJuego.startGameLoop();
+    } else if (!config.elMaestroDelJuego.enabled && maestroWasEnabled) {
+      await this.elMaestroDelJuego.cleanup();
+    }
+
+    // El Hype Man - just toggle (event-driven, no timers)
+    this.elHypeMan.setEnabled(config.elHypeMan.enabled);
+    this.elHypeMan.setMinimumDiamonds(config.elHypeMan.minimumDiamonds);
+
+    console.log('[JefeBot] Module configuration updated at runtime');
   }
 
   private applyModuleConfig(config: ModuleConfig): void {
@@ -136,9 +196,67 @@ export class Rich$teve BotCoordinator {
   async onGiftReceived(gift: Gift): Promise<void> {
     console.log('[Rich$teve Bot] Gift received:', gift);
 
+    // Track activity
+    this.trackActivity('gift');
+
     // Notify both modules that care about gifts
     await this.elHypeMan.onGiftReceived(gift);
     await this.elMaestroDelJuego.onGiftReceived(gift.username, gift.giftName);
+  }
+
+  async onChatMessage(): Promise<void> {
+    // Track chat activity from users
+    this.trackActivity('message');
+  }
+
+  // Activity & Cooldown Management
+  private trackActivity(type: 'gift' | 'message'): void {
+    this.lastActivityTime = Date.now();
+    if (type === 'gift') {
+      this.recentGiftCount++;
+    } else {
+      this.recentMessageCount++;
+    }
+
+    // Reset counters every minute
+    setTimeout(() => {
+      if (type === 'gift') this.recentGiftCount = Math.max(0, this.recentGiftCount - 1);
+      else this.recentMessageCount = Math.max(0, this.recentMessageCount - 1);
+    }, 60000);
+  }
+
+  private startLullDetector(): void {
+    // Check every 15 seconds if we're in a lull
+    this.lullCheckInterval = setInterval(() => {
+      const timeSinceActivity = Date.now() - this.lastActivityTime;
+
+      if (timeSinceActivity >= this.LULL_THRESHOLD) {
+        console.log('[Lull Detector] No activity in 75s, triggering vibe check');
+        this.elMusico.triggerVibeCheck();
+        // Reset activity time to prevent spam
+        this.lastActivityTime = Date.now();
+      }
+    }, 15000);
+  }
+
+  private async sendWithCooldown(message: string): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastMessage = now - this.lastBotMessageTime;
+
+    // Adaptive hype: if gifts >= 3 in last minute, pause prompts. Don't talk over heat.
+    if (this.recentGiftCount >= 3) {
+      console.log('[Cooldown] High gift activity detected, pausing bot message');
+      return;
+    }
+
+    // Enforce minimum 20s cooldown
+    if (timeSinceLastMessage < this.MIN_MESSAGE_INTERVAL) {
+      console.log(`[Cooldown] Message blocked, ${Math.ceil((this.MIN_MESSAGE_INTERVAL - timeSinceLastMessage) / 1000)}s remaining`);
+      return;
+    }
+
+    this.lastBotMessageTime = now;
+    await this.sendToSUGO(message);
   }
 
   // SUGO API Integration
