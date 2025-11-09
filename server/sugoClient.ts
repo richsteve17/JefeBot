@@ -124,6 +124,24 @@ export class SugoClient extends EventEmitter {
       // Quick visibility while dialing in
       this.emit('log', `WIRE<< ${text.slice(0, 160)}`);
 
+      // CHAT SNIFFER - detect and log likely chat frames
+      try {
+        const msg = JSON.parse(text);
+        if (msg && typeof msg.cmd === 'number') {
+          const d = msg.data || {};
+          const hasChatText =
+            typeof d.text === 'string' ||
+            typeof d.content === 'string' ||
+            typeof d.message === 'string' ||
+            (d.body && typeof d.body.text === 'string');
+          if (hasChatText || String(d.type || '').toLowerCase().includes('chat')) {
+            this.emit('log', `🎯 CHAT-SNIFF cmd=${msg.cmd} payload=${JSON.stringify(d)}`);
+          }
+        }
+      } catch {
+        // Not JSON, ignore
+      }
+
       // Special case: RECONNECT means server wants us to refresh and reconnect
       if (/^"?RECONNECT"?$/i.test(text.trim())) {
         this.emit('log', 'SUGO: Server requested RECONNECT (likely stale token)');
