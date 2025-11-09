@@ -338,13 +338,12 @@ export class SugoClient extends EventEmitter {
   private startWsPing() {
     this.stopWsPing();
     this.timer = setInterval(() => {
-      // Check if pong is too old (5s grace period)
-      if (Date.now() - this.lastPong > 5000) {
-        this.emit('log', 'SUGO: No pong received, terminating connection');
-        this.ws?.terminate();
-        return;
+      // Log if no pong but DON'T terminate (server ignores WS pings)
+      const silentMs = Date.now() - this.lastPong;
+      if (silentMs > 60000) {
+        this.emit('log', `SUGO: No pong in ${Math.floor(silentMs/1000)}s (server ignores WS pings, OK)`);
       }
-      // Send WS-level ping
+      // Send WS-level ping (for keepalive, even if not answered)
       try { this.ws?.ping(); } catch {}
     }, 15000); // Every 15s
   }
@@ -359,13 +358,15 @@ export class SugoClient extends EventEmitter {
     this.stopAppHeartbeat();
     this.appHeartbeatTimer = setInterval(() => {
       // Send app-level heartbeat frame
-      // TODO: Discover the exact cmd for heartbeat from Proxyman
-      // For now, we'll rely on WS pings
-      try {
-        const hb = JSON.stringify({ cmd: 0, data: { ts: Date.now() } });
-        this.ws?.send(hb);
-        this.emit('log', 'SUGO: Sent app-level heartbeat');
-      } catch {}
+      // TODO: Capture exact heartbeat frame from official SUGO client (cmd:X)
+      // Server may expect specific cmd code - sending wrong format could break subscription
+      // For now: disabled until we capture the real frame via Proxyman
+      // Keeping WS pings alive for transport-level keepalive
+
+      // Uncomment when we have the real frame:
+      // const hb = JSON.stringify({ cmd: X, data: {...} });
+      // this.ws?.send(hb);
+      // this.emit('log', 'SUGO: Sent app-level heartbeat');
     }, ms);
   }
 
