@@ -60,11 +60,15 @@ const defaults: StoredConfig = {
     spotifyAccessToken: '',
     sugoWsUrl: 'wss://activity-ws-rpc.voicemaker.media/ws/activity',
     sugoWsHeaders: {
+      'Accept': '*/*',
       'Accept-Encoding': 'gzip, deflate',
       'Accept-Language': 'en-US,en;q=0.9',
       'Cache-Control': 'no-cache',
       'Origin': 'https://activity-h5.voicemaker.media',
       'Pragma': 'no-cache',
+      'Sec-Fetch-Site': 'same-site',
+      'Sec-Fetch-Mode': 'websocket',
+      'Sec-Fetch-Dest': 'websocket',
       'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) SUGO/392401 version/vc-392401-vn-2.40.1 statusHeight/54.0 LangCode/en',
       'Cookie': 'appsflyer-id=1734994530097-1901624; brand=iPhone; channel=AppStore; did=654fab11f3b88db3fbfdd2c400e63142a3b4f455; http_ip=; idfa=3984AFF3-7633-4298-91C0-7A89AFDE80F6; language=en; locale=en_US; mcc=65535; os=ios-26.1-iPhone 16 Pro Max; pkg=com.maker.sugo; show-id=47585713; timezone=-5; token=hh0IzrHHngg79OZQQwk8BcZZXJhoeGK4; uid=47585713; version=vc-392401-vn-2.40.1'
     }
