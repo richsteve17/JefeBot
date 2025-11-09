@@ -124,6 +124,24 @@ export class SugoClient extends EventEmitter {
       // Quick visibility while dialing in
       this.emit('log', `WIRE<< ${text.slice(0, 160)}`);
 
+      // CHAT SNIFFER - detect and log likely chat frames
+      try {
+        const msg = JSON.parse(text);
+        if (msg && typeof msg.cmd === 'number') {
+          const d = msg.data || {};
+          const hasChatText =
+            typeof d.text === 'string' ||
+            typeof d.content === 'string' ||
+            typeof d.message === 'string' ||
+            (d.body && typeof d.body.text === 'string');
+          if (hasChatText || String(d.type || '').toLowerCase().includes('chat')) {
+            this.emit('log', `🎯 CHAT-SNIFF cmd=${msg.cmd} payload=${JSON.stringify(d)}`);
+          }
+        }
+      } catch {
+        // Not JSON, ignore
+      }
+
       // Special case: RECONNECT means server wants us to refresh and reconnect
       if (/^"?RECONNECT"?$/i.test(text.trim())) {
         this.emit('log', 'SUGO: Server requested RECONNECT (likely stale token)');
@@ -137,16 +155,12 @@ export class SugoClient extends EventEmitter {
           clearTimeout(this.helloTimer);
           this.helloTimer = null;
         }
-        this.emit('log', 'SUGO: Received server hello, sending CONNECT...');
-        const connectFrame = this.opts.makeConnectFrame?.();
-        if (connectFrame) {
-          this.emit('log', `WIRE>> ${connectFrame.slice(0, 200)}`);
-          this.ws?.send(connectFrame);
-          this.emit('log', 'SUGO: Sent CONNECT (hello-first path)');
-          this.stage = 'awaiting_connect_response';
-        } else {
-          this.sendJoin();
-        }
+        this.emit('log', 'SUGO: Received server hello');
+
+        // Protocol auth may auto-subscribe - skip JOIN and just listen
+        this.stage = 'subscribed';
+        this.joined = true;
+        this.emit('log', 'SUGO: Marked as subscribed (protocol auth), listening for all messages...');
 
         // Route the hello message
         this.routeMessage(text);
@@ -221,6 +235,9 @@ export class SugoClient extends EventEmitter {
 
   // Cmd-based message router
   private routeMessage(text: string) {
+    // Log EVERY incoming message for discovery
+    this.emit('log', `WIRE<< ${text.slice(0, 500)}`);
+
     let wire: SugoWireMessage;
     try {
       wire = JSON.parse(text);
@@ -247,6 +264,7 @@ export class SugoClient extends EventEmitter {
       case 310:
       case 311:
         this.emit('chat', wire);
+        this.emit('log', `🗨️ CHAT MESSAGE DETECTED (cmd ${wire.cmd}): ${JSON.stringify(wire, null, 2)}`);
         break;
 
       case 320: // Likely gift events
@@ -267,8 +285,8 @@ export class SugoClient extends EventEmitter {
         break;
 
       default:
-        // Log unknown for discovery
-        this.emit('log', `Unknown cmd ${wire.cmd}: ${JSON.stringify(wire).slice(0, 100)}`);
+        // Log unknown for discovery with FULL details
+        this.emit('log', `❓ UNKNOWN CMD ${wire.cmd}: ${JSON.stringify(wire, null, 2)}`);
         this.emit('unknown', wire);
         break;
     }
