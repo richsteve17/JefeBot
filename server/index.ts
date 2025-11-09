@@ -124,11 +124,17 @@ function buildSugo() {
     return null; // Set to null for now, enable if protocol requires it
   };
 
-  const makeJoinFrame = (roomId: string) => JSON.stringify({
-    id: 2,
-    method: 'subscribe',
-    params: { channel: `room:${roomId}` }
-  });
+  const makeJoinFrame = (roomId: string) => {
+    // SUGO uses cmd-based protocol, not Centrifugo
+    // Try common subscription cmd codes: 100, 101, 102
+    return JSON.stringify({
+      cmd: 101,  // Common "join room" cmd
+      sn: 1,     // Small sequence number
+      data: {
+        room_id: roomId
+      }
+    });
+  };
 
   // Sequence number counter (small incrementing int, not timestamp!)
   let seqNum = 1;
