@@ -46,44 +46,71 @@ export class SugoClient extends EventEmitter {
     this.closedManually = false;
     this.emit('log', `SUGO: connecting ${this.opts.url}`);
 
-    this.ws = new WebSocket(this.opts.url, {
-      headers: this.opts.headers,
+    // Extract Sec-WebSocket-Protocol from headers and pass as protocols arg
+    const headers = { ...this.opts.headers };
+    let protocols: string | string[] | undefined;
+    const protoKey = Object.keys(headers).find(k => k.toLowerCase() === 'sec-websocket-protocol');
+    if (protoKey) {
+      const raw = String((headers as any)[protoKey]);
+      delete (headers as any)[protoKey];
+      const list = raw.split(',').map(s => s.trim()).filter(Boolean);
+      protocols = list.length <= 1 ? list[0] : list;
+      this.emit('log', `SUGO: using subprotocol: ${protocols}`);
+    }
+
+    this.ws = new WebSocket(this.opts.url, protocols, {
+      headers,
       perMessageDeflate: true
     });
 
     this.ws.on('open', () => {
       this.emit('open');
-
-      // Don't send separate auth frame - SUGO rejects it with "RECONNECT"
-      // Auth should be included in the join/subscribe frame
-
-      // Send custom auth frame if provided
-      if (this.opts.makeAuthFrame) {
-        const auth = this.opts.makeAuthFrame();
-        if (auth) {
-          this.ws?.send(auth);
-          this.emit('log', 'SUGO: sent custom auth frame');
-        }
-      }
-
-      // Send join room frame (with auth included in the frame itself)
-      const joinFrame = this.opts.makeJoinFrame(this.opts.roomId);
-      this.ws?.send(joinFrame);
-      this.emit('log', `SUGO: sent join frame`);
+      this.emit('log', 'SUGO: WebSocket opened, waiting for server hello...');
       this.startHeartbeat();
     });
 
+    let sentHandshake = false;
     this.ws.on('message', (data: WebSocket.RawData) => {
       const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as any);
       this.emit('raw', buf);
+
+      // Log first 64 bytes to see protocol
+      if (!sentHandshake) {
+        this.emit('log', `[wire <<] ${buf.slice(0, 64).toString('hex')} len=${buf.length}`);
+      }
 
       const decoded = this.tryDecode(buf);
       if (decoded !== null) {
         try {
           const maybeJson = JSON.parse(decoded);
           this.emit('message', maybeJson);
+
+          // Send auth/join only after first server message (hello/nonce/etc)
+          if (!sentHandshake) {
+            sentHandshake = true;
+            this.emit('log', 'SUGO: received server hello, sending handshake...');
+            if (this.opts.makeAuthFrame) {
+              const auth = this.opts.makeAuthFrame();
+              if (auth) {
+                this.ws?.send(auth);
+                this.emit('log', 'SUGO: sent auth frame');
+              }
+            }
+            const joinFrame = this.opts.makeJoinFrame(this.opts.roomId);
+            this.ws?.send(joinFrame);
+            this.emit('log', 'SUGO: sent join frame');
+          }
         } catch {
           this.emit('message', decoded);
+          if (!sentHandshake) {
+            sentHandshake = true;
+            this.emit('log', 'SUGO: received non-JSON hello, sending handshake...');
+            if (this.opts.makeAuthFrame) {
+              const auth = this.opts.makeAuthFrame();
+              if (auth) this.ws?.send(auth);
+            }
+            this.ws?.send(this.opts.makeJoinFrame(this.opts.roomId));
+          }
         }
       } else {
         this.emit('message', buf);

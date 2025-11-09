@@ -59,7 +59,8 @@ const defaults: StoredConfig = {
       'Host': 'activity-ws-rpc.voicemaker.media',
       'Origin': 'https://www.sugo.com',
       'Pragma': 'no-cache',
-      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+      'Sec-WebSocket-Protocol': '{"authorization":"LLAWRORtEXmBfK7Hyj3pd1MOfh3hyu67","uid":"47585713"}'
     }
   },
   moduleConfig: {
@@ -95,19 +96,17 @@ function buildSugo() {
   const url = config.botConfig.sugoWsUrl;
   const headers = config.botConfig.sugoWsHeaders || {};
 
-  // SUGO is responding with "RECONNECT" to our auth frame
-  // Try including auth in the join frame instead, or try different formats
+  // Auth is now in Sec-WebSocket-Protocol subprotocol
+  // Try simple subscribe/publish pattern after server hello
   const makeJoinFrame = (roomId: string) => JSON.stringify({
-    authorization: config.botConfig.botAccountToken,
-    uid: config.botConfig.sugoUid,
-    room_id: roomId
+    type: 'subscribe',
+    channel: roomId
   });
 
   const makeSendFrame = (roomId: string, text: string) => JSON.stringify({
-    room_id: roomId,
-    content: text,
-    authorization: config.botConfig.botAccountToken,
-    uid: config.botConfig.sugoUid
+    type: 'publish',
+    channel: roomId,
+    data: { message: text }
   });
 
   const client = new SugoClient({
@@ -118,6 +117,7 @@ function buildSugo() {
     uid: config.botConfig.sugoUid,
     heartbeatMs: 25000,
     decompress: 'auto',
+    makeAuthFrame: undefined, // Auth in subprotocol, not separate frame
     makeJoinFrame,
     makeSendFrame
   });
