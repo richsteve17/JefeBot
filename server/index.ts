@@ -4,7 +4,7 @@ import path from 'path';
 import express from 'express';
 import { WebSocketServer } from 'ws';
 import { SugoClient, SugoWireMessage } from './sugoClient.js';
-import { tapWireMessage } from './wireTap.js';
+import { tapWireMessage, tapGift, tapChat, tapPK } from './wireTap.js';
 
 type Conn = import('ws').WebSocket;
 
@@ -354,7 +354,7 @@ app.post('/api/test/chat', (req, res) => {
 });
 
 // Diagnostic: Try multiple chat formats to discover the correct one
-app.post('/api/test/chat-discovery', (req, res) => {
+app.post('/api/test/chat-discovery', (_req, res) => {
   if (!sugo?.isOpen()) {
     return res.status(400).json({ success: false, message: 'SUGO not connected' });
   }
