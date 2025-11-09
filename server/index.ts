@@ -59,8 +59,7 @@ const defaults: StoredConfig = {
       'Host': 'activity-ws-rpc.voicemaker.media',
       'Origin': 'https://www.sugo.com',
       'Pragma': 'no-cache',
-      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
-      'Sec-WebSocket-Protocol': '{"authorization":"LLAWRORtEXmBfK7Hyj3pd1MOfh3hyu67","uid":"47585713"}'
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
     }
   },
   moduleConfig: {
@@ -96,17 +95,34 @@ function buildSugo() {
   const url = config.botConfig.sugoWsUrl;
   const headers = config.botConfig.sugoWsHeaders || {};
 
-  // Auth is now in Sec-WebSocket-Protocol subprotocol
-  // Try simple subscribe/publish pattern after server hello
+  // Centrifugo-style 3-stage handshake:
+  // 1. Server sends hello
+  // 2. Client sends CONNECT (with token)
+  // 3. Server responds with connected
+  // 4. Client sends SUBSCRIBE to channel
+
+  const makeAuthFrame = () => JSON.stringify({
+    id: 1,
+    method: 'connect',
+    params: {
+      token: config.botConfig.botAccountToken,
+      data: { uid: config.botConfig.sugoUid }
+    }
+  });
+
   const makeJoinFrame = (roomId: string) => JSON.stringify({
-    type: 'subscribe',
-    channel: roomId
+    id: 2,
+    method: 'subscribe',
+    params: { channel: `room:${roomId}` }
   });
 
   const makeSendFrame = (roomId: string, text: string) => JSON.stringify({
-    type: 'publish',
-    channel: roomId,
-    data: { message: text }
+    id: Date.now(),
+    method: 'publish',
+    params: {
+      channel: `room:${roomId}`,
+      data: { message: text }
+    }
   });
 
   const client = new SugoClient({
@@ -117,7 +133,7 @@ function buildSugo() {
     uid: config.botConfig.sugoUid,
     heartbeatMs: 25000,
     decompress: 'auto',
-    makeAuthFrame: undefined, // Auth in subprotocol, not separate frame
+    makeAuthFrame, // Send auth as first message
     makeJoinFrame,
     makeSendFrame
   });

@@ -69,51 +69,67 @@ export class SugoClient extends EventEmitter {
       this.startHeartbeat();
     });
 
-    let sentHandshake = false;
+    let stage: 'idle' | 'connected' | 'subscribed' = 'idle';
+
     this.ws.on('message', (data: WebSocket.RawData) => {
       const buf = Buffer.isBuffer(data) ? data : Buffer.from(data as any);
       this.emit('raw', buf);
 
-      // Log first 64 bytes to see protocol
-      if (!sentHandshake) {
-        this.emit('log', `[wire <<] ${buf.slice(0, 64).toString('hex')} len=${buf.length}`);
+      const text = this.tryDecode(buf) ?? buf.toString('utf8');
+
+      // Quick visibility while dialing in
+      this.emit('log', `WIRE<< ${text.slice(0, 120)}`);
+
+      // 1) First server message arrives -> send CONNECT
+      if (stage === 'idle') {
+        this.emit('log', 'SUGO: Received server hello, sending CONNECT...');
+        // OPTION A: token is in subprotocol; no extra CONNECT payload needed.
+        // OPTION B (Centrifugo-style): send a "connect" JSON with token.
+        const connectFrame = this.opts.makeAuthFrame?.();
+        if (connectFrame) {
+          this.ws?.send(connectFrame);
+          this.emit('log', 'SUGO: Sent CONNECT frame');
+        }
+        stage = 'connected';
+        return;
       }
 
-      const decoded = this.tryDecode(buf);
-      if (decoded !== null) {
+      // 2) After we see a server "connected"/ok, send SUBSCRIBE/JOIN
+      if (stage === 'connected') {
+        this.emit('log', 'SUGO: Checking if server accepted CONNECT...');
+        // Heuristic: if server sends plain "RECONNECT" it means it didn't like your connect payload.
+        // If you see a JSON with { "result": { "client": ... } } or "connected", then subscribe.
         try {
-          const maybeJson = JSON.parse(decoded);
-          this.emit('message', maybeJson);
-
-          // Send auth/join only after first server message (hello/nonce/etc)
-          if (!sentHandshake) {
-            sentHandshake = true;
-            this.emit('log', 'SUGO: received server hello, sending handshake...');
-            if (this.opts.makeAuthFrame) {
-              const auth = this.opts.makeAuthFrame();
-              if (auth) {
-                this.ws?.send(auth);
-                this.emit('log', 'SUGO: sent auth frame');
-              }
-            }
-            const joinFrame = this.opts.makeJoinFrame(this.opts.roomId);
-            this.ws?.send(joinFrame);
-            this.emit('log', 'SUGO: sent join frame');
+          const j = JSON.parse(text);
+          this.emit('message', j);
+          if (j.result || j.connected || j.type === 'WELCOME' || j.type === 'CONNECTED') {
+            this.emit('log', 'SUGO: Server accepted CONNECT, sending SUBSCRIBE...');
+            const sub = this.opts.makeJoinFrame(this.opts.roomId);
+            this.ws?.send(sub);
+            this.emit('log', 'SUGO: Sent SUBSCRIBE frame');
+            stage = 'subscribed';
+          } else if (text.includes('RECONNECT') || text.includes('Not handshaked')) {
+            this.emit('log', 'SUGO: Server rejected with RECONNECT - auth failed!');
           }
         } catch {
-          this.emit('message', decoded);
-          if (!sentHandshake) {
-            sentHandshake = true;
-            this.emit('log', 'SUGO: received non-JSON hello, sending handshake...');
-            if (this.opts.makeAuthFrame) {
-              const auth = this.opts.makeAuthFrame();
-              if (auth) this.ws?.send(auth);
-            }
-            this.ws?.send(this.opts.makeJoinFrame(this.opts.roomId));
+          // Not JSON, check for plain text indicators
+          this.emit('message', text);
+          if (/connected|welcome/i.test(text)) {
+            this.emit('log', 'SUGO: Server accepted (non-JSON), sending SUBSCRIBE...');
+            const sub = this.opts.makeJoinFrame(this.opts.roomId);
+            this.ws?.send(sub);
+            stage = 'subscribed';
           }
         }
-      } else {
-        this.emit('message', buf);
+        return;
+      }
+
+      // 3) After subscribed, just emit normal messages
+      try {
+        const j = JSON.parse(text);
+        this.emit('message', j);
+      } catch {
+        this.emit('message', text);
       }
     });
 
