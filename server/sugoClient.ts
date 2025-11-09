@@ -255,6 +255,7 @@ export class SugoClient extends EventEmitter {
   sendChat(text: string) {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
     const frame = this.opts.makeSendFrame(this.opts.roomId, text);
+    this.emit('log', `WIRE>> ${frame.toString().slice(0, 200)}`);
     this.ws.send(frame);
     return true;
   }

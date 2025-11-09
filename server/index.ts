@@ -299,10 +299,21 @@ app.post('/api/test/vibe-check', (_req, res) => {
 // Test chat connectivity
 app.post('/api/test/chat', (req, res) => {
   const { message } = req.body || {};
-  if (!sugo?.isOpen()) {
+  log(`Test chat request: "${message}"`);
+
+  if (!sugo) {
+    log('Test chat failed: SUGO client not initialized');
+    return res.status(400).json({ success: false, message: 'SUGO not initialized' });
+  }
+
+  if (!sugo.isOpen()) {
+    log('Test chat failed: SUGO not connected');
     return res.status(400).json({ success: false, message: 'SUGO not connected' });
   }
+
+  log(`Sending to SUGO: "${message}"`);
   const sent = sugo.sendChat(message || '🎯 Test message from Jefe Bot');
+  log(`Send result: ${sent}`);
   res.json({ success: sent });
 });
 
