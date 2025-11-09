@@ -102,20 +102,10 @@ function buildSugo() {
   const url = config.botConfig.sugoWsUrl;
   const headers = config.botConfig.sugoWsHeaders || {};
 
-  // Build the exact two-protocol format from Proxyman capture:
-  // Protocol 1: token
-  // Protocol 2: URL-encoded JSON with uid, did, version, activity_id
-  const buildProtocol = (token: string, uid: string, deviceId: string, version: string, activityId: number): string[] => {
-    const metadata = JSON.stringify({
-      uid,
-      did: deviceId,
-      version,
-      activity_id: activityId
-    });
-    return [
-      token,
-      encodeURIComponent(metadata)
-    ];
+  // Send ONLY ONE subprotocol (token) - server rejects multiple protocols
+  // Metadata goes in JOIN frame, not as second subprotocol
+  const buildProtocol = (token: string): string => {
+    return token;
   };
 
   const makeConnectFrame = () => {
@@ -124,17 +114,18 @@ function buildSugo() {
     return null; // Set to null for now, enable if protocol requires it
   };
 
-  const makeJoinFrame = (roomId: string) => {
-    // After cmd 338 hello, send JOIN with full credentials
-    // Using metadata from the protocol subprotocol
+  const makeJoinFrame = (_roomId: string) => {
+    // After cmd 338 hello, send JOIN with full credentials including token
+    // All metadata goes HERE, not in subprotocol
+    // Note: roomId may not be needed - activity_id identifies the stream
     return JSON.stringify({
-      cmd: 100,  // JOIN/SUBSCRIBE cmd (to be discovered from Proxyman)
+      cmd: 100,  // JOIN/SUBSCRIBE cmd
       data: {
         uid: config.botConfig.sugoUid,
         did: config.botConfig.sugoDeviceId || '',
         version: config.botConfig.sugoAppVersion || 'vc-392401-vn-2.40.1',
-        activity_id: config.botConfig.sugoActivityId || 10233,
-        room_id: roomId
+        activity_id: config.botConfig.sugoActivityId || 10231,
+        token: config.botConfig.botAccountToken  // Include token in JOIN
       }
     });
   };
@@ -189,26 +180,14 @@ function buildSugo() {
     // TODO: Implement the pre-WS HTTP call if you capture one
     // For now, rebuild protocol from stored credentials
     log('SUGO: Rebuilding protocol from stored credentials');
-    const protocols = buildProtocol(
-      config.botConfig.botAccountToken,
-      config.botConfig.sugoUid,
-      config.botConfig.sugoDeviceId || '',
-      config.botConfig.sugoAppVersion || 'vc-392401-vn-2.40.1',
-      config.botConfig.sugoActivityId || 10231
-    );
-    return { protocol: protocols };
+    const protocol = buildProtocol(config.botConfig.botAccountToken);
+    return { protocol };
   };
 
   const client = new SugoClient({
     url,
     headers,
-    protocols: buildProtocol(
-      config.botConfig.botAccountToken,
-      config.botConfig.sugoUid,
-      config.botConfig.sugoDeviceId || '',
-      config.botConfig.sugoAppVersion || 'vc-392401-vn-2.40.1',
-      config.botConfig.sugoActivityId || 10231
-    ),
+    protocols: buildProtocol(config.botConfig.botAccountToken),
     roomId: config.botConfig.sugoRoomId,
     token: config.botConfig.botAccountToken,
     uid: config.botConfig.sugoUid,

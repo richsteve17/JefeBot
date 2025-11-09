@@ -82,7 +82,7 @@ export class SugoClient extends EventEmitter {
 
     this.ws = new WebSocket(this.opts.url, protocols, {
       headers,
-      perMessageDeflate: true  // Match official client behavior
+      perMessageDeflate: false  // Keep compression off for clean debugging
     });
 
     this.ws.on('open', () => {
