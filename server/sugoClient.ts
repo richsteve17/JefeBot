@@ -8,17 +8,20 @@ export type SugoHeaders = Record<string, string>;
 export interface SugoClientOpts {
   url: string;                  // wss://... from the handshake
   headers: SugoHeaders;         // headers you saw in the WS upgrade
+  protocols?: string | string[]; // First-class subprotocol (e.g., "im-auth;v=1;token=...")
   roomId: string;
   token?: string;               // SUGO auth token
   uid?: string;                 // User ID
   heartbeatMs?: number;         // default 25s
   decompress?: 'auto' | 'none'; // try gzip/zlib if 'auto'
-  // If the app sends an auth frame immediately after connect, provide it:
-  makeAuthFrame?: () => string | Buffer | null;
+  // If the app sends a CONNECT frame after WS open, provide it:
+  makeConnectFrame?: () => string | Buffer | null;
   // Exact JSON the app uses to join a room:
   makeJoinFrame: (roomId: string) => string | Buffer;
   // Exact JSON the app uses to send a chat message:
   makeSendFrame: (roomId: string, text: string) => string | Buffer;
+  // Called before reconnect to fetch fresh token/protocol
+  refreshToken?: () => Promise<{ protocol?: string; headers?: Record<string, string> }>;
 }
 
 export interface SugoEventMap {
@@ -48,34 +51,35 @@ export class SugoClient extends EventEmitter {
     this.closedManually = false;
     this.emit('log', `SUGO: connecting ${this.opts.url}`);
 
-    // Extract Sec-WebSocket-Protocol from headers and pass as protocols arg
     const headers = { ...this.opts.headers };
-    let protocols: string | string[] | undefined;
-    const protoKey = Object.keys(headers).find(k => k.toLowerCase() === 'sec-websocket-protocol');
-    if (protoKey) {
-      const raw = String((headers as any)[protoKey]);
-      delete (headers as any)[protoKey];
-      const list = raw.split(',').map(s => s.trim()).filter(Boolean);
-      protocols = list.length <= 1 ? list[0] : list;
-      this.emit('log', `SUGO: using subprotocol: ${protocols}`);
-    }
+    const protocols = this.opts.protocols; // Use first-class protocols value
 
     this.ws = new WebSocket(this.opts.url, protocols, {
       headers,
-      perMessageDeflate: true
+      perMessageDeflate: false  // Fewer surprises while testing
     });
 
     this.ws.on('open', () => {
+      const negotiated = (this.ws as any)?.protocol || '';
+      this.emit('log', `SUGO: Negotiated protocol: ${negotiated || 'none'}`);
+
+      // CRITICAL: If server rejected subprotocol, refresh token and reconnect
+      if (!negotiated) {
+        this.emit('log', 'SUGO: No protocol accepted → refresh token and retry');
+        this.ws?.close(1000, 'no-protocol');
+        this.scheduleReconnect(true); // true = refresh before reconnecting
+        return;
+      }
+
       this.emit('open');
-      this.emit('log', 'SUGO: WebSocket opened, waiting for server hello...');
-      this.emit('log', `SUGO: Negotiated protocol: ${(this.ws as any)?.protocol || 'none'}`);
+      this.emit('log', 'SUGO: Protocol accepted, proceeding with handshake');
       this.startHeartbeat();
 
       // Fallback: if no hello in 500ms, send CONNECT ourselves (client-first protocol)
       this.helloTimer = setTimeout(() => {
         if (this.stage !== 'idle') return;
         this.emit('log', 'SUGO: No hello received, sending client-first CONNECT...');
-        const connectFrame = this.opts.makeAuthFrame?.();
+        const connectFrame = this.opts.makeConnectFrame?.();
         if (connectFrame) {
           this.emit('log', `WIRE>> ${connectFrame.slice(0, 200)}`);
           this.ws?.send(connectFrame);
@@ -99,10 +103,10 @@ export class SugoClient extends EventEmitter {
       // Quick visibility while dialing in
       this.emit('log', `WIRE<< ${text.slice(0, 160)}`);
 
-      // Special case: RECONNECT means server wants us to reconnect
+      // Special case: RECONNECT means server wants us to refresh and reconnect
       if (/^"?RECONNECT"?$/i.test(text.trim())) {
-        this.emit('log', 'SUGO: Server requested RECONNECT');
-        this.scheduleReconnect();
+        this.emit('log', 'SUGO: Server requested RECONNECT (likely stale token)');
+        this.scheduleReconnect(true); // Refresh token before reconnecting
         return;
       }
 
@@ -113,7 +117,7 @@ export class SugoClient extends EventEmitter {
           this.helloTimer = null;
         }
         this.emit('log', 'SUGO: Received server hello, sending CONNECT...');
-        const connectFrame = this.opts.makeAuthFrame?.();
+        const connectFrame = this.opts.makeConnectFrame?.();
         if (connectFrame) {
           this.emit('log', `WIRE>> ${connectFrame.slice(0, 200)}`);
           this.ws?.send(connectFrame);
@@ -211,9 +215,26 @@ export class SugoClient extends EventEmitter {
     this.timer = null;
   }
 
-  private scheduleReconnect() {
+  private scheduleReconnect(refresh = false) {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.reconnectTimer = setTimeout(() => this.connect(), 2000);
+    this.reconnectTimer = setTimeout(async () => {
+      if (refresh && this.opts.refreshToken) {
+        this.emit('log', 'SUGO: Refreshing token before reconnect...');
+        try {
+          const res = await this.opts.refreshToken();
+          if (res?.protocol) {
+            this.opts.protocols = res.protocol;
+            this.emit('log', `SUGO: Got fresh protocol: ${res.protocol.slice(0, 60)}...`);
+          }
+          if (res?.headers) {
+            this.opts.headers = { ...this.opts.headers, ...res.headers };
+          }
+        } catch (err: any) {
+          this.emit('log', `SUGO: Token refresh failed: ${err.message}`);
+        }
+      }
+      this.connect();
+    }, 1500);
   }
 
   private tryDecode(buf: Buffer): string | null {

@@ -95,31 +95,23 @@ function buildSugo() {
   const url = config.botConfig.sugoWsUrl;
   const headers = config.botConfig.sugoWsHeaders || {};
 
-  // Centrifugo-style 3-stage handshake:
-  // 1. Server sends hello
-  // 2. Client sends CONNECT (with token)
-  // 3. Server responds with connected
-  // 4. Client sends SUBSCRIBE to channel
+  // Protocol string goes in the subprotocol, not in message frames
+  // Example formats seen in the wild:
+  //   "im-auth;v=1;token=<JWT>"
+  //   "activity-auth,<token>"
+  // TODO: Capture the exact format from Proxyman's pre-WS HTTP call
+  const buildProtocol = (token: string) => {
+    // PLACEHOLDER: Update this with the actual format from your capture
+    // Common patterns:
+    return `im-auth;v=1;token=${token}`;
+    // or: return `activity-auth,${token}`;
+    // or: return token; // if it's just the raw token
+  };
 
-  // Try multiple auth formats until we find the right one
-  let authAttempt = 0;
-  const makeAuthFrame = () => {
-    authAttempt++;
-    const formats = [
-      // Format 1: Centrifugo-style with token in params
-      { id: 1, connect: { token: config.botConfig.botAccountToken, name: 'bot' } },
-      // Format 2: Simple token + uid
-      { token: config.botConfig.botAccountToken, uid: config.botConfig.sugoUid },
-      // Format 3: Auth type with credentials
-      { type: 'auth', token: config.botConfig.botAccountToken, uid: config.botConfig.sugoUid },
-      // Format 4: Original Centrifugo params style
-      { id: 1, method: 'connect', params: { token: config.botConfig.botAccountToken, data: { uid: config.botConfig.sugoUid } } },
-      // Format 5: Token at root with subs
-      { token: config.botConfig.botAccountToken, subs: { [`room:${config.botConfig.sugoRoomId}`]: {} } }
-    ];
-    const idx = (authAttempt - 1) % formats.length;
-    log(`SUGO: Trying auth format ${idx + 1}/${formats.length}`);
-    return JSON.stringify(formats[idx]);
+  const makeConnectFrame = () => {
+    // If needed after protocol auth, send a CONNECT frame
+    // Most protocols auth via subprotocol only and don't need this
+    return null; // Set to null for now, enable if protocol requires it
   };
 
   const makeJoinFrame = (roomId: string) => JSON.stringify({
@@ -137,17 +129,36 @@ function buildSugo() {
     }
   });
 
+  // Refresh token from SUGO's HTTP endpoint before WS connect
+  const refreshToken = async () => {
+    // TODO: Implement the pre-WS HTTP call you captured in Proxyman
+    // Example:
+    // const res = await fetch('https://activity-ws-rpc.voicemaker.media/api/ticket', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json', ...config.botConfig.sugoWsHeaders },
+    //   body: JSON.stringify({ roomId: config.botConfig.sugoRoomId, uid: config.botConfig.sugoUid })
+    // });
+    // const { token } = await res.json();
+    // return { protocol: buildProtocol(token) };
+
+    // PLACEHOLDER: Return current token until we capture the refresh endpoint
+    log('SUGO: Token refresh not implemented yet - using stored token');
+    return { protocol: buildProtocol(config.botConfig.botAccountToken) };
+  };
+
   const client = new SugoClient({
     url,
     headers,
+    protocols: buildProtocol(config.botConfig.botAccountToken), // Pass protocol explicitly
     roomId: config.botConfig.sugoRoomId,
     token: config.botConfig.botAccountToken,
     uid: config.botConfig.sugoUid,
     heartbeatMs: 25000,
     decompress: 'auto',
-    makeAuthFrame, // Send auth as first message
+    makeConnectFrame,  // Renamed from makeAuthFrame
     makeJoinFrame,
-    makeSendFrame
+    makeSendFrame,
+    refreshToken
   });
 
   client.on('log', (m) => log(m));
