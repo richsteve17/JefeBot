@@ -52,10 +52,10 @@ interface StoredConfig {
 const defaults: StoredConfig = {
   botConfig: {
     sugoRoomId: '1250911',
-    botAccountToken: 'e9ScmfqaeHsklb7yR7gS9M4TnzXwiZF1', // FRESH token from latest Proxyman capture
+    botAccountToken: 'daFxa7tiTQtH2vQh7I9Cl88cvmzc8ZeX', // FRESH token from latest Proxyman capture
     sugoUid: '47585713',
     sugoDeviceId: '654fab11f3b88db3fbfdd2c400e63142a3b4f455',
-    sugoActivityId: 10231,
+    sugoActivityId: 10233, // Updated from latest capture
     sugoAppVersion: 'vc-392401-vn-2.40.1',
     spotifyAccessToken: '',
     sugoWsUrl: 'wss://activity-ws-rpc.voicemaker.media/ws/activity',
@@ -66,7 +66,7 @@ const defaults: StoredConfig = {
       'Origin': 'https://activity-h5.voicemaker.media', // CORRECTED from www.sugo.com
       'Pragma': 'no-cache',
       'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) SUGO/392401 version/vc-392401-vn-2.40.1 statusHeight/54.0 LangCode/en',
-      'Cookie': 'appsflyer-id=1734994530097-1901624; brand=iPhone; channel=AppStore; did=654fab11f3b88db3fbfdd2c400e63142a3b4f455; http_ip=; idfa=3984AFF3-7633-4298-91C0-7A89AFDE80F6; language=en; locale=en_US; mcc=65535; os=ios-26.1-iPhone 16 Pro Max; pkg=com.maker.sugo; show-id=47585713; timezone=-5; token=e9ScmfqaeHsklb7yR7gS9M4TnzXwiZF1; uid=47585713; version=vc-392401-vn-2.40.1'
+      'Cookie': 'appsflyer-id=1734994530097-1901624; brand=iPhone; channel=AppStore; did=654fab11f3b88db3fbfdd2c400e63142a3b4f455; http_ip=; idfa=3984AFF3-7633-4298-91C0-7A89AFDE80F6; language=en; locale=en_US; mcc=65535; os=ios-26.1-iPhone 16 Pro Max; pkg=com.maker.sugo; show-id=47585713; timezone=-5; token=daFxa7tiTQtH2vQh7I9Cl88cvmzc8ZeX; uid=47585713; version=vc-392401-vn-2.40.1'
     }
   },
   moduleConfig: {
