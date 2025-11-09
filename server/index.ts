@@ -17,6 +17,7 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 interface BotConfig {
   sugoRoomId: string;
   botAccountToken: string;
+  sugoUid: string;              // SUGO user ID
   spotifyAccessToken?: string;
   // internal: WS url + headers captured via mitm; keep these server-side only
   sugoWsUrl?: string;
@@ -47,16 +48,18 @@ interface StoredConfig {
 const defaults: StoredConfig = {
   botConfig: {
     sugoRoomId: '1250911',
-    botAccountToken: '',
+    botAccountToken: 'LLAWRORtEXmBfK7Hyj3pd1MOfh3hyu67', // Your token from Proxyman
+    sugoUid: '47585713',         // Your UID from Proxyman
     spotifyAccessToken: '',
-    // TODO: paste from your capture:
-    sugoWsUrl: 'wss://activity-ws-rpc.voicemaker.media/ws/activity', // FILL THIS from mitmproxy
+    sugoWsUrl: 'wss://activity-ws-rpc.voicemaker.media/ws/activity',
     sugoWsHeaders: {
-      // TODO: Add headers you saw in the WebSocket handshake:
-      // 'Origin': 'https://app.sugo.example',
-      // 'Cookie': 'sid=...',
-      // 'Authorization': 'Bearer ...',
-      // 'User-Agent': 'okhttp/4.9.3'
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Cache-Control': 'no-cache',
+      'Host': 'activity-ws-rpc.voicemaker.media',
+      'Origin': 'https://www.sugo.com',
+      'Pragma': 'no-cache',
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
     }
   },
   moduleConfig: {
@@ -92,32 +95,29 @@ function buildSugo() {
   const url = config.botConfig.sugoWsUrl;
   const headers = config.botConfig.sugoWsHeaders || {};
 
-  // TODO: replace the two frames below with the exact shapes your app uses, as seen in mitmweb:
-  // Look at the OUTGOING WebSocket messages when you send a chat in SUGO
+  // Based on common live streaming WebSocket patterns, these are educated guesses
+  // We'll need to refine these based on what we see in the WebSocket messages
   const makeJoinFrame = (roomId: string) => JSON.stringify({
-    // TODO: Fill this with the exact JSON SUGO sends to join a room
-    action: 'join',
-    roomId
+    type: 'join_room',
+    room_id: roomId,
+    timestamp: Date.now()
   });
 
   const makeSendFrame = (roomId: string, text: string) => JSON.stringify({
-    // TODO: Fill this with the exact JSON SUGO sends when you type a chat message
-    // Example from what we saw: might have "cmd", "data", etc.
-    cmd: 338, // might be different - check your capture
-    data: {
-      room_id: roomId,
-      message: text
-    }
+    type: 'chat_message',
+    room_id: roomId,
+    message: text,
+    timestamp: Date.now()
   });
 
   const client = new SugoClient({
     url,
     headers,
     roomId: config.botConfig.sugoRoomId,
+    token: config.botConfig.botAccountToken,
+    uid: config.botConfig.sugoUid,
     heartbeatMs: 25000,
     decompress: 'auto',
-    // If your capture showed an auth frame after connect, add it here:
-    // makeAuthFrame: () => JSON.stringify({ op: 'auth', token: config.botConfig.botAccountToken }),
     makeJoinFrame,
     makeSendFrame
   });
@@ -248,6 +248,7 @@ function redactBotConfig(b: BotConfig) {
   return {
     sugoRoomId: b.sugoRoomId,
     botAccountToken: b.botAccountToken ? redact(b.botAccountToken) : '',
+    sugoUid: b.sugoUid ? redact(b.sugoUid) : '',
     spotifyAccessToken: b.spotifyAccessToken ? redact(b.spotifyAccessToken) : '',
     // never send ws headers/url back to the browser; keep server-side
   };

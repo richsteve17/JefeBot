@@ -354,7 +354,7 @@ export class ElMaestroDelJuego extends BaseModule {
   }
 
   // Track gift participation
-  async onGiftReceived(username: string, giftName: string): Promise<void> {
+  async onGiftReceived(username: string, _giftName: string): Promise<void> {
     if (!this.state.activeGame?.isActive) return;
 
     const game = this.state.activeGame;

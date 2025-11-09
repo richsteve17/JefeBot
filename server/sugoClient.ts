@@ -9,6 +9,8 @@ export interface SugoClientOpts {
   url: string;                  // wss://... from the handshake
   headers: SugoHeaders;         // headers you saw in the WS upgrade
   roomId: string;
+  token?: string;               // SUGO auth token
+  uid?: string;                 // User ID
   heartbeatMs?: number;         // default 25s
   decompress?: 'auto' | 'none'; // try gzip/zlib if 'auto'
   // If the app sends an auth frame immediately after connect, provide it:
@@ -43,7 +45,13 @@ export class SugoClient extends EventEmitter {
   connect() {
     this.closedManually = false;
     this.emit('log', `SUGO: connecting ${this.opts.url}`);
-    this.ws = new WebSocket(this.opts.url, {
+
+    // SUGO uses auth via WebSocket subprotocol header
+    const protocol = this.opts.token && this.opts.uid
+      ? JSON.stringify({ authorization: this.opts.token, uid: this.opts.uid })
+      : undefined;
+
+    this.ws = new WebSocket(this.opts.url, protocol, {
       headers: this.opts.headers,
       perMessageDeflate: true
     });
